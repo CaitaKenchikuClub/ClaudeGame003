@@ -1,2 +1,18 @@
-# ClaudeGame003
-ブロッコリーキャッチ
+# ClaudeGame003 — ブロッコリーキャッチ
+
+空から降ってくるブロッコリーをカゴでキャッチする、スマホ向けのブラウザゲームです。
+
+▶ **プレイする：** https://caitakenchikuclub.github.io/ClaudeGame003/
+（GitHub Pages を有効にすると、このURLで遊べるようになります）
+
+## ドキュメント
+- [GAME_SPEC.md](GAME_SPEC.md) — ゲーム仕様書（ルール・難易度・保存データ・既知の不具合）
+- [CLAUDE.md](CLAUDE.md) — Claude Code で開発するときのルール
+- [docs/PUBLISH_GUIDE.md](docs/PUBLISH_GUIDE.md) — GitHub Pages で公開する手順・開発を続ける方法
+- [docs/MIGRATION_NOTES.md](docs/MIGRATION_NOTES.md) — アーティファクトからの移行メモ・Capacitor でアプリ化する際の注意点
+
+## ローカルで動かす
+```bash
+python3 -m http.server 8000   # → http://localhost:8000/
+node tests/smoke-test.mjs     # 自動の動作確認（Playwright が必要）
+```
