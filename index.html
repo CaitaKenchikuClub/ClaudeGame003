@@ -607,7 +607,7 @@ function step(dt){
   birdT-=dt;
   if(!bird&&birdT<=0){const dir=Math.random()<.5?1:-1;bird={dir,x:dir>0?-40:W+40,y:H*(.22+Math.random()*.25),v:130+Math.random()*60+Math.min(t,60),f:0};SND.fx('bird');}
   if(bird){bird.x+=bird.dir*bird.v*dt;bird.f+=dt*14;bird.y+=Math.sin(bird.f*.25)*.6;
-    if(bird.x<-60||bird.x>W+60){bird=null;birdT=4+Math.random()*5;}}
+    if(bird.x<-60||bird.x>W+60){bird=null;birdT=(4+Math.random()*5)*Math.max(0,1-t/90);}}   // gap between birds shrinks to 0 at 90s: from then on a new bird follows right away
   for(const it of items){
     if(!running)break; // game ended earlier in this frame: ignore further drops/catches (lives must not go below 0)
     if(bird&&!it.hit&&Math.hypot(it.x-bird.x,it.y-bird.y)<34){it.hit=true;
