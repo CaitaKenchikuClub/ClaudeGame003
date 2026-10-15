@@ -24,6 +24,9 @@
 index.html                ゲーム本体（HTML + CSS + JS を1ファイルに格納）。GitHub Pages の入口
 assets/img/*.webp         キャラクター画像4枚（元は index.html に base64 で埋め込まれていた）
 assets/fonts/             同梱フォント（WOFF2）と各フォントの OFL.txt、fonts.css（@font-face）
+assets/icons/             PWA・ホーム画面用アイコン（192／512／180／32px PNG）
+manifest.webmanifest      PWA の設定（アプリ名・アイコン・縦画面・standalone）。パスは相対、id は書かない
+design/icon-source.webp   アイコンの元画像（1254×1254。Capacitor のアプリアイコン生成にも使う）
 THIRD_PARTY_NOTICES.md    第三者の著作物・ライセンス一覧（ストア審査用）
 archive/original-artifact.html  移行前の元ファイル（参照専用・編集しない）
 tests/smoke-test.mjs      ブラウザでの自動動作確認（Playwright）
@@ -70,6 +73,5 @@ node tests/smoke-test.mjs
 - 作業は作業用ブランチで行い、プルリクエストでオーナーに確認してもらってから `main` にマージする。
 
 ## 今後の予定（優先順の目安）
-1. PWA 化（アイコン・manifest）
-2. Capacitor 導入（`docs/MIGRATION_NOTES.md` の「Capacitor の注意点」を参照）
-3. 広告（Web 用と アプリ用 AdMob を `ads.js` などに分けて実装）
+1. Capacitor 導入（`docs/MIGRATION_NOTES.md` の「Capacitor の注意点」を参照）
+2. 広告（Web 用と アプリ用 AdMob を `ads.js` などに分けて実装）

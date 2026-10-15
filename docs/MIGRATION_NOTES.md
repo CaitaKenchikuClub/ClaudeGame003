@@ -70,6 +70,8 @@
 
 ## D. Capacitor でアプリ化する際の注意点（今後の参考）
 
+0. **PWA の設定（2026-10-15 追加）**：`manifest.webmanifest` と `<head>` の apple-touch-icon などは、Capacitor のアプリ内では使われないが、置いたままで問題ない（害はない）。アプリのアイコンとスプラッシュ画面は、`design/icon-source.webp`（1254×1254）から `@capacitor/assets` などで別途生成する（1024×1024 以上の PNG が必要なので、PNG に変換してから使う）。Service Worker は入れていないので、Capacitor との競合もない。
+
 1. **フォルダ構成**：Capacitor はアプリに入れるファイルを1つのフォルダ（`webDir`、例：`www/`）にまとめる必要がある。アプリ化の段階で、ゲームのファイルを `www/` に移し、GitHub Pages も GitHub Actions で `www/` を公開する形に変えるのが分かりやすい（今回は初めての公開を簡単にするため、ルートに置いている）。
 2. **【対応済み 2026-10-15】Google Fonts**：フォントを `assets/fonts/` に同梱し、外部への通信をなくした（詳細は `THIRD_PARTY_NOTICES.md`）。（元のメモ：アプリはオフラインでも動くべきなので、フォントファイルを同梱する。どちらのフォントも SIL Open Font License で、同梱できる）。
 3. **保存データ**：iOS の WebView は、端末の空き容量が少ないと `localStorage` を消すことがある【一般的な注意点】。大事なデータが増えたら `@capacitor/preferences` に移すことを検討する（`broc-best` の移し替え処理が必要）。
