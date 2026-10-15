@@ -12,7 +12,7 @@ catch { pw = await import('/opt/node22/lib/node_modules/playwright/index.mjs'); 
 const { chromium, devices } = pw;
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const TYPES = { '.html': 'text/html; charset=utf-8', '.webp': 'image/webp', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.webp': 'image/webp', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
 // Serve under a sub path like GitHub Pages does (/ClaudeGame003/) so absolute paths would fail here too
 const PREFIX = '/ClaudeGame003/';
 const server = http.createServer((req, res) => {
@@ -49,6 +49,19 @@ const imgs = await page.evaluate(() => [...document.images].map(i => i.complete 
 await page.evaluate(() => document.fonts.ready);
 const loadedFonts = await page.evaluate(() => [...new Set([...document.fonts].filter(f => f.status === 'loaded').map(f => f.family.replace(/["']/g, '') + ' ' + f.weight))].sort().join(', '));
 check('bundled fonts loaded (Dela Gothic One 400, M PLUS Rounded 1c 500/800)', loadedFonts === 'Dela Gothic One 400, M PLUS Rounded 1c 500, M PLUS Rounded 1c 800', loadedFonts);
+// PWA: manifest parses without errors, icons have the declared sizes, and Chrome considers the page installable
+const cdp = await ctx.newCDPSession(page);
+const man = await cdp.send('Page.getAppManifest');
+const manJson = JSON.parse(man.data || '{}');
+check('PWA: manifest found and parsed without errors', man.url === BASE + 'manifest.webmanifest' && man.errors.length === 0, man.errors.map(e => e.message).join(' | '));
+const iconSizes = await page.evaluate(async srcs => Promise.all(srcs.map(src => new Promise(ok => { const i = new Image(); i.onload = () => ok(i.naturalWidth + 'x' + i.naturalHeight); i.onerror = () => ok('error'); i.src = src; }))),
+  [...manJson.icons.map(i => i.src), 'assets/icons/apple-touch-icon.png', 'assets/icons/favicon-32.png']);
+check('PWA: icons load with declared sizes', JSON.stringify(iconSizes) === JSON.stringify([...manJson.icons.map(i => i.sizes), '180x180', '32x32']), iconSizes.join(', '));
+// (Page.getInstallabilityErrors is not used: headless Chromium returns no errors even without a manifest)
+const parsed = man.manifest || {};   // Chromium's resolved view of the manifest (absolute URLs)
+// No explicit "id": it would be resolved against the origin (= every app on caitakenchikuclub.github.io); the default id is start_url
+check('PWA: start_url / scope / id resolve to the sub-directory', parsed.startUrl === BASE && parsed.scope === BASE && parsed.id === BASE, `${parsed.startUrl} ${parsed.scope} ${parsed.id}`);
+check('PWA: standalone + portrait, icons resolve under the sub-directory', manJson.display === 'standalone' && manJson.orientation === 'portrait' && (parsed.icons || []).length === 3 && parsed.icons.every(i => i.url.startsWith(BASE + 'assets/icons/')), (parsed.icons || []).map(i => i.url).join(' '));
 check('4 character images loaded', imgs.length === 4 && imgs.every(Boolean));
 check('start overlay visible', await page.evaluate(() => !document.getElementById('overlay').hidden));
 
