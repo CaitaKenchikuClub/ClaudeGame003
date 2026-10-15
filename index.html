@@ -491,6 +491,7 @@ function step(dt){
   if(bird){bird.x+=bird.dir*bird.v*dt;bird.f+=dt*14;bird.y+=Math.sin(bird.f*.25)*.6;
     if(bird.x<-60||bird.x>W+60){bird=null;birdT=4+Math.random()*5;}}
   for(const it of items){
+    if(!running)break; // game ended earlier in this frame: ignore further drops/catches (lives must not go below 0)
     if(bird&&!it.hit&&Math.hypot(it.x-bird.x,it.y-bird.y)<34){it.hit=true;
       it.vx=bird.dir*(140+Math.random()*120)*(Math.random()<.25?-1:1);it.vy*=.55;it.vr+=bird.dir*6;pop(it.x,it.y-20,'バサッ',INK);SND.fx('blow');}
     it.x+=it.vx*dt;if(it.x<16){it.x=16;it.vx=Math.abs(it.vx)*.6;}if(it.x>W-16){it.x=W-16;it.vx=-Math.abs(it.vx)*.6;}

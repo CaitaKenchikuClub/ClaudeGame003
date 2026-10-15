@@ -63,11 +63,31 @@ await page.tap('#snd');
 check('mute saved to localStorage', (await page.evaluate(() => localStorage.getItem('broc-mute'))) === '1');
 await page.reload(); await page.waitForTimeout(500);
 check('best score restored after reload', +(await page.textContent('#best')) === score);
-// Known pre-existing bug (see GAME_SPEC.md 既知の不具合 #1): random, so only reported, not failed
-const KNOWN = 'Invalid count value: -1';
-if (errors.includes(KNOWN)) console.log('KNOWN  既知の不具合#1 が発生しました (lives が -1 になりゲームループが停止)');
-const other = errors.filter(e => e !== KNOWN);
-check('no JS errors / missing files', other.length === 0, other.join(' | '));
+check('no JS errors / missing files', errors.length === 0, errors.join(' | '));
+
+// Regression (GAME_SPEC.md 既知の不具合 #1, fixed): several items hitting the ground in the
+// frame that ends the game used to push lives to -1, throw in hud() and stop the game loop.
+// Inject a test-only hook into the served page (the real file is not changed).
+const page2 = await ctx.newPage();
+const errors2 = [];
+page2.on('pageerror', e => errors2.push(e.message));
+await page2.route('**/index.html', async route => {
+  const body = await (await route.fetch()).text();
+  const hook = "window.__dropMany=()=>{for(let k=0;k<5;k++)items.push({type:'broc',x:10,y:GROUND-1,vx:0,vy:100,rot:0,vr:0,size:30});};";
+  route.fulfill({ contentType: 'text/html; charset=utf-8', body: body.replace('function loop(now){', hook + 'function loop(now){') });
+});
+await page2.goto(BASE + 'index.html', { waitUntil: 'load' });
+await page2.waitForTimeout(500);
+await page2.tap('#start'); await page2.waitForTimeout(300);
+await page2.evaluate(() => window.__dropMany());
+await page2.waitForTimeout(800);
+check('multi-drop: game over shown', await page2.evaluate(() => !document.getElementById('overlay').hidden));
+check('multi-drop: no error', errors2.length === 0, errors2.join(' | '));
+check('multi-drop: lives shown as 0', (await page2.textContent('#lives')) === '🤍🤍🤍');
+await page2.tap('#start'); await page2.waitForTimeout(500);
+const frame = () => page2.evaluate(() => document.getElementById('cv').toDataURL());
+const f1 = await frame(); await page2.waitForTimeout(1000);
+check('multi-drop: "もう一回" restarts and animates', f1 !== await frame());
 
 await page.screenshot({ path: path.join(ROOT, 'tests', 'last-run.png') });
 await browser.close(); server.close();
