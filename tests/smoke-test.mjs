@@ -167,6 +167,30 @@ await page3.tap('#resume');
 check('no external requests (fonts are local)', external.length === 0, [...new Set(external)].slice(0, 3).join(' | '));
 check('heart/menu: no error', errors3.length === 0, errors3.join(' | '));
 
+// Fair spawning: simulate 3 minutes (no bird, player out of the way) and check what reaches the basket.
+// Two catchables arriving <0.25s apart must not be farther apart than the basket, and a cucumber must not
+// arrive within 0.3s and 3/4 basket width of a catchable.
+const page4 = await ctx.newPage();
+await page4.route('**/index.html', async route => {
+  const body = await (await route.fetch()).text();
+  const hook = "window.__sim=(seed,secs)=>{let s=seed;Math.random=()=>{s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff;};start();const rec=[],by=basketY(),bw=basketW();" +
+    "for(let i=0;i<secs*60;i++){lives=3;bird=null;birdT=1e9;P.x=-999;step(1/60);for(const it of items)if(!it.__r){it.__r=1;rec.push({good:it.type!=='cuke',x:it.x,arr:t+(by-12-it.y)/it.vy});}}running=false;return {rec,bw};};";
+  route.fulfill({ contentType: 'text/html; charset=utf-8', body: body.replace('function loop(now){', hook + 'function loop(now){') });
+});
+await page4.goto(BASE + 'index.html', { waitUntil: 'load' });
+let far = 0, cuke = 0, spawned = 0;
+for (const seed of [11, 22]) {
+  const { rec, bw } = await page4.evaluate(s => window.__sim(s, 180), seed);
+  rec.sort((a, b) => a.arr - b.arr); spawned += rec.length;
+  for (let i = 0; i < rec.length; i++) for (let j = i + 1; j < rec.length && rec[j].arr - rec[i].arr < 0.3; j++) {
+    const A = rec[i], B = rec[j], dt = B.arr - A.arr, dx = Math.abs(A.x - B.x);
+    if (A.good && B.good && dt < 0.25 && dx > bw) far++;
+    if (A.good !== B.good && dx < bw * 0.75) cuke++;
+  }
+}
+check('fair spawn: no far-apart simultaneous catchables', far === 0, `${far} pairs in ${spawned} items`);
+check('fair spawn: no cucumber on top of a catchable', cuke === 0, `${cuke} pairs in ${spawned} items`);
+
 await page.screenshot({ path: path.join(ROOT, 'tests', 'last-run.png') });
 await browser.close(); server.close();
 process.exit(results.every(Boolean) ? 0 : 1);

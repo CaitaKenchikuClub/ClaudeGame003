@@ -390,13 +390,35 @@ const basketW=()=>SPR_W()*0.72;
 let bird=null,birdT=8;
 const HEART_EVERY=50;let nextHeart=HEART_EVERY;   // a 💚 (life +1, max 3) replaces the next spawn each time the score passes a multiple of 50
 
+/* fair placement: never drop two catchables too far apart to reach both in time, or a cucumber on top of a catchable */
+const REACT=.2,REACH=550,CUKE_DT=.35;   // reaction time (s), comfortable move speed (px/s), cucumber/catchable time window (s)
+const eta=it=>(basketY()-12-it.y)/it.vy;   // seconds until an item reaches the basket (birds can still change this)
+function clash(type,x,ta){
+  const bw=basketW(),good=type!=='cuke';let n=0;
+  for(const o of items){if(o.done||o.hit||o.y>basketY()-12)continue;
+    const dt=Math.abs(eta(o)-ta),dx=Math.abs(o.x-x),og=o.type!=='cuke';
+    if(good&&og?dx>bw*.6&&dt<REACT+(dx-bw*.6)/REACH:good!==og&&dt<CUKE_DT&&dx<bw)n++;}
+  return n;
+}
 function spawn(){
-  const lvl=Math.min(t/60,1),r=Math.random();
-  if(score>=nextHeart){nextHeart+=HEART_EVERY;
-    items.push({type:'heart',x:24+Math.random()*(W-48),y:-30,vx:0,vy:(140+lvl*200)*(0.85+Math.random()*0.3),rot:0,vr:(Math.random()-.5)*.8,size:30});return;}
-  const type=r<0.06?'gold':r<0.06+0.12+lvl*0.12?'cuke':'broc';
-  items.push({type,x:24+Math.random()*(W-48),y:-30,vx:0,vy:(140+lvl*200)*(0.85+Math.random()*0.3),
-    rot:Math.random()*6,vr:(Math.random()-.5)*3,size:type==='cuke'?30:30});
+  const lvl=Math.min(t/60,1),r=Math.random(),ta=vy=>(basketY()-12+30)/vy;
+  let type;
+  if(score>=nextHeart){nextHeart+=HEART_EVERY;type='heart';}   // a 💚 replaces this spawn
+  else type=r<0.06?'gold':r<0.06+0.12+lvl*0.12?'cuke':'broc';
+  // same random ranges as before (x anywhere, speed ±15%); retry until the item does not clash with what is already falling
+  let best=null;
+  for(let k=0;k<12&&!(best&&!best.c);k++){const x=24+Math.random()*(W-48),vy=(140+lvl*200)*(0.85+Math.random()*0.3),c=clash(type,x,ta(vy));if(!best||c<best.c)best={x,vy,c};}
+  if(best.c){
+    const bw=basketW(),near=items.filter(o=>!o.done&&!o.hit&&o.type!=='cuke'&&o.y<basketY()-12);
+    if(type!=='cuke'&&near.length){   // catchable: fall right next to the catchable it would clash with
+      const o=near.reduce((a,b)=>Math.abs(eta(a)-ta(best.vy))<Math.abs(eta(b)-ta(best.vy))?a:b);
+      best.x=Math.min(Math.max(o.x+(Math.random()-.5)*bw*.3,24),W-24);
+    }else if(type==='cuke'){   // cucumber: as far as possible from the catchables arriving around the same time
+      let far=-1;for(let x=24;x<=W-24;x+=8){const d=Math.min(1e9,...near.filter(o=>Math.abs(eta(o)-ta(best.vy))<CUKE_DT).map(o=>Math.abs(o.x-x)));if(d>far){far=d;best.x=x;}}
+    }
+  }
+  items.push(type==='heart'?{type,x:best.x,y:-30,vx:0,vy:best.vy,rot:0,vr:(Math.random()-.5)*.8,size:30}
+    :{type,x:best.x,y:-30,vx:0,vy:best.vy,rot:Math.random()*6,vr:(Math.random()-.5)*3,size:type==='cuke'?30:30});
 }
 
 /* ---------- items ---------- */
