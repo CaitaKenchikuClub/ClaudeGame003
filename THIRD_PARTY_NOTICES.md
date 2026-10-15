@@ -50,6 +50,8 @@
 - キャラクター「校長」は Caita建築部 が著作権を持つキャラクター。画像はすべて Caita建築部 が ChatGPT で生成したもので、使用に問題ないことをオーナー（Caita建築部）が確認済み（2026-10-15、オーナーの申告による）。
 - 第三者の素材ではなく自作素材のため、アプリ内の「ライセンス情報」には載せていない。
 
+| `assets/ads/house-ad.webp` | ハウス広告（Pickle♡Mellow の告知画像。クレジット表記：Caita Pickle♡Mellow 運営委員会）。リンク先は `ads-config.js` | オーナー提供（2026-10-15）。**ストア公開前に、使用許諾をオーナーが確認すること** |
+
 ### 1-3. 音声
 | ファイル | 内容 | 権利 |
 |---|---|---|
@@ -63,6 +65,10 @@
 ## 2. 同梱していないもの（端末側の機能を使用）
 - **絵文字**（💚 🤍 など）：端末に搭載されている絵文字フォント（Apple Color Emoji、Noto Color Emoji、Segoe UI Emoji など）で表示している。アプリにフォントは含めておらず、再配布もしていない。
 - **フォールバック用の日本語フォント**（Hiragino Sans、Yu Gothic など）：CSS で名前を指定しているだけで、同梱していない。
+
+## 2-2. フェーズ2（Capacitor 導入時）に追加する予定のもの
+- **@capacitor-community/admob**（MIT License）と、それが組み込む **Google Mobile Ads SDK**・**User Messaging Platform（UMP）SDK**（Google の利用規約）。導入時に、ライセンス表示（アプリ内「ライセンス情報」）とストアのプライバシー申告を更新する。
+- 広告の配信により、アプリから Google に端末情報などが送られる（プライバシーポリシーに記載が必要）。Web版（GitHub Pages）は AdMob を読み込まず、外部への通信もない。
 
 ## 3. 開発時のみ使用（アプリには含まれない）
 - **Playwright**（Apache License 2.0）：`tests/smoke-test.mjs` の自動テストで使用。アプリには含まれない。

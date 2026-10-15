@@ -26,6 +26,11 @@ assets/img/*.webp         キャラクター画像4枚（元は index.html に b
 assets/fonts/             同梱フォント（WOFF2）と各フォントの OFL.txt、fonts.css（@font-face）
 assets/icons/             PWA・ホーム画面用アイコン（192／512／180／32px PNG）
 assets/audio/bgm-game.mp3 プレイ中の BGM（Suno で制作、94.36秒ループ）。元の WAV はオーナーが保管
+ads.js                    広告処理のすべて（AdMob／模擬 AdMob／ハウス広告）。ゲームは window.Ads だけを使う
+ads-config.js             広告の設定（テスト／本番の広告ユニット ID、ハウス広告の画像とリンク先）
+assets/ads/               ハウス広告の画像
+tests/ads-test.mjs        広告の自動テスト（バナー位置・コンティニュー・キャンセル・失敗・通知の順序・重複）
+docs/ADS.md               広告の仕様・設定の変え方・Capacitor 導入時の手順
 manifest.webmanifest      PWA の設定（アプリ名・アイコン・縦画面・standalone）。パスは相対、id は書かない
 design/icon-source.webp   アイコンの元画像（1254×1254。Capacitor のアプリアイコン生成にも使う）
 THIRD_PARTY_NOTICES.md    第三者の著作物・ライセンス一覧（ストア審査用）
@@ -50,6 +55,13 @@ GAME_SPEC.md              ゲーム仕様書
 - `localStorage` のキー `broc-best`（ベストスコア）、`broc-mute`（消音）、`broc-vol-bgm`／`broc-vol-se`（音量）。名前を変えると、プレイヤーの記録や設定が消える。
 - 画像のパスは `assets/img/...` の**相対パス**のまま使う（`/assets/...` のような絶対パスは GitHub Pages のサブパス `/ClaudeGame003/` で壊れる）。
 
+## 広告のルール（詳細は docs/ADS.md）
+- 広告の処理は `ads.js` にまとめる。ゲーム本体（index.html）は `ADS.xxx()`（window.Ads）だけを呼ぶ。ads.js が読み込めなくてもゲームは動くこと。
+- **プレイ中にバナーを出さない**（操作領域が画面全体のため、誤タップの危険）。バナーはタイトル・結果画面だけ。インタースティシャル広告は入れない（オーナー方針）。
+- ライフ回復は**報酬を獲得したときだけ**。報酬の判定は ads.js の `settle` で1回だけ行う。コンティニューは1プレイ1回。
+- 広告ユニット ID・ハウス広告の画像とリンク先は `ads-config.js` だけで変える。テスト用 ID と本番 ID を混ぜない。
+- 広告まわりを変えたら `node tests/ads-test.mjs` も実行する。Web 版では `?ads=mock` で模擬 AdMob を試せる。
+
 ## フォント・第三者素材のルール
 - 外部の CDN（Google Fonts など）からフォントやライブラリを読み込まない。アプリ化したときにオフラインで動かなくなるため。
 - フォントは `assets/fonts/` に同梱済み（SIL OFL 1.1）。各フォルダの `OFL.txt` は削除・変更しない。
@@ -62,6 +74,9 @@ python3 -m http.server 8000
 
 # 2) 自動テスト（スマホ画面で起動 → 1プレイ → ゲームオーバー → 保存 → 再読み込み）
 node tests/smoke-test.mjs
+
+# 3) 広告の自動テスト（Web 版のハウス広告と模擬 AdMob）
+node tests/ads-test.mjs
 ```
 - `index.html` を直接ダブルクリックで開いても動くが、確認はローカルサーバーで行う（GitHub Pages と同じ条件にするため）。
 - 自動テストは `/ClaudeGame003/` というサブパスで配信し、GitHub Pages と同じ条件にしている。
@@ -74,5 +89,5 @@ node tests/smoke-test.mjs
 - 作業は作業用ブランチで行い、プルリクエストでオーナーに確認してもらってから `main` にマージする。
 
 ## 今後の予定（優先順の目安）
-1. Capacitor 導入（`docs/MIGRATION_NOTES.md` の「Capacitor の注意点」を参照）
-2. 広告（Web 用と アプリ用 AdMob を `ads.js` などに分けて実装）
+1. Capacitor 導入（`docs/MIGRATION_NOTES.md` の「Capacitor の注意点」と `docs/ADS.md` の「フェーズ2」を参照）。AdMob プラグインの組み込みと、広告の実機確認もここで行う
+2. 広告の本番 ID 設定・ストア公開の準備（プライバシーポリシー、app-ads.txt など）

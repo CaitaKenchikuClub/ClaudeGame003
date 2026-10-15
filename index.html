@@ -89,6 +89,10 @@ button.sub{background:var(--card);color:var(--ink)}
 .lic p{font-size:12px}
 .lic summary{cursor:pointer;font-weight:800}
 .lic pre{white-space:pre-wrap;word-break:break-word;font-size:10px;line-height:1.5;margin:6px 0 0;padding:8px;background:var(--sky2);border-radius:8px}
+/* ads: room for the banner on title / result screens (set by Ads.onBannerSpace), continue card */
+#overlay{padding-top:var(--ad-space,0px)}
+.cont .foot button{min-width:220px}
+.cont button.sub{font-size:15px}
 </style>
 
 <div class="wrap">
@@ -131,6 +135,19 @@ button.sub{background:var(--card);color:var(--ink)}
         </div>
       </div>
     </div>
+    <div class="overlay menu cont" id="cont" hidden>
+      <div class="card" role="dialog" aria-modal="true" aria-labelledby="contTitle">
+        <div class="txt">
+          <h2 id="contTitle">ライフが0になりました</h2>
+          <div class="big" id="contScore">0</div>
+          <p>広告を見ると、ライフ1つで続きから再開できます（1プレイにつき1回まで）。</p>
+        </div>
+        <div class="foot">
+          <button id="contAd" type="button">広告を見てライフ＋1</button>
+          <button id="contEnd" class="sub" type="button">コンティニューせずに終了する</button>
+        </div>
+      </div>
+    </div>
     <div class="overlay menu" id="menu" hidden>
       <div class="card" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
         <div class="txt" id="menuMain">
@@ -139,6 +156,7 @@ button.sub{background:var(--card);color:var(--ink)}
           <label class="vol"><span>効果音</span><input type="range" id="volSe" min="0" max="100" step="5"><output id="volSeOut"></output></label>
           <p class="note" id="muteNote" hidden>いまはミュート中です（右上のスピーカーで解除）</p>
           <button id="licBtn" class="link" type="button">ライセンス情報</button>
+          <button id="privBtn" class="link" type="button" hidden>プライバシー設定（広告）</button>
         </div>
         <div class="txt" id="menuLicense" hidden>
           <h2>ライセンス情報</h2>
@@ -176,10 +194,12 @@ button.sub{background:var(--card);color:var(--ink)}
   </div>
 </div>
 
+<script src="ads-config.js"></script>
+<script src="ads.js"></script>
 <script>
 /* ---------- sound: everything synthesized with Web Audio ---------- */
 const SND=(()=>{
-  let tempoBoost=0,ac=null,master,musicBus,sfxBus,noiseBuf,seq=null,muted=false,wantSong=null,lastBlow=0;
+  let held=false,tempoBoost=0,ac=null,master,musicBus,sfxBus,noiseBuf,seq=null,muted=false,wantSong=null,lastBlow=0;
   try{muted=localStorage.getItem('broc-mute')==='1'}catch(e){}
   const BASE={bgm:.55,se:.8},vol={bgm:1,se:1};   // per-bus volume 0..1 chosen in the settings menu
   for(const k in vol)try{const v=parseFloat(localStorage.getItem('broc-vol-'+k));if(v>=0&&v<=1)vol[k]=v;}catch(e){}
@@ -199,7 +219,7 @@ const SND=(()=>{
     sfxBus=ac.createGain();sfxBus.gain.value=BASE.se*vol.se;sfxBus.connect(master);
     noiseBuf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);
     const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
-    document.addEventListener('visibilitychange',()=>{if(!ac)return;document.hidden?ac.suspend():ac.resume();});
+    document.addEventListener('visibilitychange',()=>{if(!ac)return;document.hidden?ac.suspend():held||ac.resume();});
     for(const k in FILES)FILES[k].req.then(ab=>ab?ac.decodeAudioData(ab,b=>ready(k,b),()=>ready(k,false)):ready(k,false));
     return true;
   }
@@ -379,7 +399,8 @@ const SND=(()=>{
     vol[k]=v;try{localStorage.setItem('broc-vol-'+k,String(v))}catch(e){}
     if(ac)(k==='bgm'?musicBus:sfxBus).gain.setTargetAtTime(BASE[k]*v,ac.currentTime,.03);
   }
-  return {wake,play,stop,fx,setMuted,setVol,vol:k=>vol[k],setTempo(v){tempoBoost=v},get muted(){return muted},get started(){return !!ac}};
+  function hold(on){held=on;if(!ac)return;on?ac.suspend():document.hidden||ac.resume();}   // silence everything while an ad is shown
+  return {wake,play,stop,fx,setMuted,setVol,hold,vol:k=>vol[k],setTempo(v){tempoBoost=v},get muted(){return muted},get started(){return !!ac}};
 })();
 
 (()=>{
@@ -394,6 +415,9 @@ function resize(){dpr=Math.min(window.devicePixelRatio||1,2);W=stage.clientWidth
   S=Math.max(.75,Math.min(1.15,H/640));GROUND=H-34;
   P.x=Math.min(Math.max(P.x||W/2,50*S),W-50*S);}
 let best=0;try{best=+localStorage.getItem('broc-best')||0}catch(e){}
+const ADS=window.Ads||{init:()=>Promise.resolve(),showBanner(){},hideBanner(){},onBannerSpace(){},canContinue:()=>false,showRewarded:()=>Promise.resolve(false),privacyOptionsRequired:()=>false,showPrivacyOptions(){}};
+const INV_T=2,CD_T=3;   // after a continue: 3-2-1 countdown, then 2 s without losing lives
+let contUsed=false,contOpen=false,inv=0,cd=0,runBest=0;
 $best.textContent=best;
 
 let items=[],pops=[],clouds=[],score=0,lives=3,running=false,paused=false,t=0,spawnT=0,last=0,keys={};
@@ -568,7 +592,8 @@ function drawSprite(){
   if(!IMG.complete)return;
   ctx.save();ctx.translate(P.x+shake,GROUND);ctx.rotate(lean*.07);
   const hop=P.mood==='joy'&&!reduce&&P.moodT>JOY_T-.35?Math.sin((JOY_T-P.moodT)/.35*Math.PI)*10:0;
-  ctx.drawImage(img,-w/2,-h-bob-hop,w,h);
+  if(inv>0)ctx.globalAlpha=reduce?.6:Math.sin(t*25)>0?1:.35;   // blinking = cannot lose a life right now
+  ctx.drawImage(img,-w/2,-h-bob-hop,w,h);ctx.globalAlpha=1;
   if(P.mood==='joy'){ // sparkles around the head
     ctx.fillStyle='#f3c23c';
     for(let i=0;i<5;i++){const a=i/5*Math.PI*2+t*1.6,rx=w*.42,ry=h*.16,sx=Math.cos(a)*rx,sy=-h*.58+Math.sin(a)*ry-hop;
@@ -608,12 +633,20 @@ function drawBg(){
 }
 function hud(){$score.textContent=score;$lives.textContent='💚'.repeat(lives)+'🤍'.repeat(Math.max(0,3-lives));}
 function pop(x,y,text,color){pops.push({x,y,text,color,a:1});}
-function hurt(kind){lives--;hud();P.mood='sad';P.moodT=SAD_T;SND.fx(kind);try{navigator.vibrate&&navigator.vibrate(60)}catch(e){};if(lives<=0)end();}
+function hurt(kind){if(inv>0)return;lives--;hud();P.mood='sad';P.moodT=SAD_T;SND.fx(kind);try{navigator.vibrate&&navigator.vibrate(60)}catch(e){};if(lives<=0)gameOver();}
+function gameOver(){   // lives hit 0: freeze everything, keep the best score safe, then offer a continue (once per play) or finish
+  running=false;paused=true;P.target=null;keys={};
+  if(score>best){best=score;$best.textContent=best;try{localStorage.setItem('broc-best',best)}catch(e){}}
+  if(!contUsed&&ADS.canContinue()){contOpen=true;$('contScore').textContent=score;$('contAd').disabled=$('contEnd').disabled=false;$('cont').hidden=false;$('contAd').focus();}
+  else end();
+}
+function resumeAfterContinue(){lives=1;hud();P.mood='happy';P.moodT=0;P.target=null;keys={};cd=CD_T;}   // the loop counts down, then resumes play
 
 function step(dt){
   t+=dt;
   if(P.moodT>0){P.moodT-=dt;if(P.moodT<=0)P.mood='happy';}
   if(!running)return;
+  if(inv>0)inv-=dt;
   spawnT-=dt;SND.setTempo(Math.min(t/60,1)*16);
   if(spawnT<=0){spawn();spawnT=Math.max(0.35,1.1-t*0.012)*(0.7+Math.random()*0.6);}
   const px=P.x;
@@ -650,19 +683,26 @@ function draw(){
   if(bird)drawBird(bird);
   ctx.textAlign='center';ctx.font='800 20px "M PLUS Rounded 1c",sans-serif';
   for(const p of pops){ctx.globalAlpha=Math.max(0,p.a);ctx.fillStyle=p.color;ctx.fillText(p.text,p.x,p.y);}ctx.globalAlpha=1;
+  if(cd>0){ctx.save();ctx.fillStyle='rgba(255,255,255,.35)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font=`400 ${Math.round(110*S)}px "Dela Gothic One",sans-serif`;ctx.lineJoin='round';ctx.lineWidth=10;ctx.strokeStyle='#fffdf7';ctx.fillStyle='#4f8a2c';
+    ctx.strokeText(Math.ceil(cd),W/2,H*.42);ctx.fillText(Math.ceil(cd),W/2,H*.42);ctx.restore();}
 }
-function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;if(!paused)step(dt);draw();requestAnimationFrame(loop);}
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;
+  if(cd>0){const n=Math.ceil(cd);cd-=dt;if(cd<=0){cd=0;paused=false;running=true;inv=INV_T;SND.fx('start');}else if(Math.ceil(cd)!==n)SND.fx('catch');}
+  if(!paused)step(dt);draw();requestAnimationFrame(loop);}
 function start(){
   items=[];pops=[];bird=null;birdT=8;score=0;nextHeart=HEART_EVERY;lives=3;t=0;spawnT=0.4;P.x=W/2;P.target=null;P.vx=0;P.mood='happy';P.moodT=0;hud();
+  contUsed=false;contOpen=false;inv=0;cd=0;runBest=best;paused=false;$('cont').hidden=true;ADS.hideBanner();
   overlay.hidden=true;running=true;
   SND.wake();SND.setTempo(0);SND.fx('start');SND.play('game');
 }
 function end(){
-  running=false;const nb=score>best;
-  if(nb){best=score;$best.textContent=best;try{localStorage.setItem('broc-best',best)}catch(e){}}
+  running=false;paused=false;contOpen=false;cd=0;inv=0;$('cont').hidden=true;
+  const nb=score>runBest;   // compared with the best at the start of this play (it may already have been saved at 0 lives)
+  if(score>best){best=score;$best.textContent=best;try{localStorage.setItem('broc-best',best)}catch(e){}}
   txt.innerHTML=`<h1>ごちそうさま!</h1><div class="big">${score}</div><p>${nb?'ベスト更新!':'ベスト '+best}</p>`;
   const b=document.getElementById('start');b.textContent='もう一回';
-  overlay.hidden=false;b.focus();
+  overlay.hidden=false;b.focus();showBanner();
   SND.play('end',()=>{if(!running)SND.play('menu');});
 }
 document.getElementById('start').onclick=start;
@@ -676,16 +716,17 @@ const $=id=>document.getElementById(id);
 const menu=$('menu'),$muteNote=$('muteNote');
 function showConfirm(on){$('menuLicense').hidden=$('licFoot').hidden=true;$('menuMain').hidden=on;$('menuFoot').hidden=on;$('menuConfirm').hidden=!on;$('confirmFoot').hidden=!on;$(on?'retryNo':'resume').focus();}
 function openMenu(){
-  if(!menu.hidden)return;
+  if(!menu.hidden||contOpen||cd>0)return;
+  $('privBtn').hidden=!ADS.privacyOptionsRequired();
   paused=running;P.target=null;
   $('menuTitle').textContent=running?'ポーズ中':'設定';
   $('resume').textContent=running?'つづける':'とじる';
   $('retry').hidden=!running;
   for(const k of ['bgm','se']){const v=Math.round(SND.vol(k)*100),id=k==='bgm'?'volBgm':'volSe';$(id).value=v;$(id+'Out').textContent=v;}
   $muteNote.hidden=!SND.muted;
-  menu.hidden=false;showConfirm(false);
+  menu.hidden=false;showConfirm(false);ADS.hideBanner();   // no banner next to the settings controls
 }
-function closeMenu(){menu.hidden=true;paused=false;P.target=null;keys={};}
+function closeMenu(){menu.hidden=true;paused=false;P.target=null;keys={};showBanner();}
 $('menuBtn').onclick=e=>{e.stopPropagation();menu.hidden?openMenu():closeMenu();};
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&running)openMenu();});   // auto-pause when the app is switched or the screen turns off; stays paused until つづける
 $('resume').onclick=closeMenu;
@@ -698,6 +739,22 @@ for(const d of document.querySelectorAll('.lic details'))d.addEventListener('tog
   fetch(pre.dataset.src).then(r=>r.ok?r.text():Promise.reject()).then(t=>{pre.textContent=t;}).catch(()=>{pre.textContent='全文はアプリ内のファイル '+pre.dataset.src+' に収録しています。';});
 });
 $('retryYes').onclick=()=>{closeMenu();start();};
+$('privBtn').onclick=()=>ADS.showPrivacyOptions();
+
+/* ---------- ads: continue with a rewarded ad (max once per play), banner on title / result screens ---------- */
+$('contAd').onclick=()=>{
+  if(!contOpen||contUsed)return;
+  contUsed=true;$('contAd').disabled=$('contEnd').disabled=true;$('cont').hidden=true;SND.hold(true);
+  const done=ok=>{if(!contOpen)return;contOpen=false;SND.hold(false);ok?resumeAfterContinue():end();};   // life only when the reward was earned
+  ADS.showRewarded().then(done,()=>done(false));
+};
+$('contEnd').onclick=()=>{if(contOpen)end();};
+// the banner is only shown when the title / result card still fits below it (otherwise the game screen wins)
+const roomFor=px=>stage.clientHeight-overlay.querySelector('.card').offsetHeight-16>=px;
+const showBanner=()=>{if(!running&&!contOpen&&!overlay.hidden&&menu.hidden&&roomFor(74))ADS.showBanner(stage);};   // 74 = 12 + 50 (smallest banner) + 12
+ADS.onBannerSpace(px=>{document.documentElement.style.setProperty('--ad-space',px+'px');if(px&&!roomFor(px))ADS.hideBanner();});
+ADS.init().then(showBanner);
+addEventListener('resize',showBanner);
 for(const [id,k] of [['volBgm','bgm'],['volSe','se']]){
   const el=$(id);
   el.oninput=()=>{$(id+'Out').textContent=el.value;SND.setVol(k,el.value/100);};
