@@ -9,6 +9,7 @@
 - [GAME_SPEC.md](GAME_SPEC.md) — ゲーム仕様書（ルール・難易度・保存データ・既知の不具合）
 - [CLAUDE.md](CLAUDE.md) — Claude Code で開発するときのルール
 - [docs/PUBLISH_GUIDE.md](docs/PUBLISH_GUIDE.md) — GitHub Pages で公開する手順・開発を続ける方法
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) — フォントなど第三者の著作物とライセンスの一覧
 - [docs/MIGRATION_NOTES.md](docs/MIGRATION_NOTES.md) — アーティファクトからの移行メモ・Capacitor でアプリ化する際の注意点
 
 ## ローカルで動かす

@@ -23,6 +23,8 @@
 ```
 index.html                ゲーム本体（HTML + CSS + JS を1ファイルに格納）。GitHub Pages の入口
 assets/img/*.webp         キャラクター画像4枚（元は index.html に base64 で埋め込まれていた）
+assets/fonts/             同梱フォント（WOFF2）と各フォントの OFL.txt、fonts.css（@font-face）
+THIRD_PARTY_NOTICES.md    第三者の著作物・ライセンス一覧（ストア審査用）
 archive/original-artifact.html  移行前の元ファイル（参照専用・編集しない）
 tests/smoke-test.mjs      ブラウザでの自動動作確認（Playwright）
 docs/                     移行メモ・GitHub Pages の公開手順
@@ -31,7 +33,7 @@ GAME_SPEC.md              ゲーム仕様書
 ```
 
 ## index.html の中身（上から順）
-1. `<head>`：文字コード、viewport（`viewport-fit=cover`）、タイトル、**元のアーティファクト環境が自動で入れていた基本 CSS**（セーフエリアの余白など。見た目を保つためそのまま残している）、Google Fonts。
+1. `<head>`：文字コード、viewport（`viewport-fit=cover`）、タイトル、**元のアーティファクト環境が自動で入れていた基本 CSS**（セーフエリアの余白など。見た目を保つためそのまま残している）、同梱フォントの読み込み（`assets/fonts/fonts.css` + preload）。
 2. `<body>` 内の `<style>`：ゲームの CSS（色は `:root` の CSS 変数）。
 3. HTML：`.hud`（スコア・ライフ・ベスト・音ボタン・メニューボタン）、`#stage` > `canvas#cv` + `#overlay`（スタート／ゲームオーバーのカード） + `#menu`（ポーズ・設定メニュー）。
 4. `<script>` 1つ目：`SND` — Web Audio による BGM・効果音の合成（音声ファイルなし）。
@@ -43,6 +45,11 @@ GAME_SPEC.md              ゲーム仕様書
 ## 変えてはいけない値（保存データの互換性）
 - `localStorage` のキー `broc-best`（ベストスコア）、`broc-mute`（消音）、`broc-vol-bgm`／`broc-vol-se`（音量）。名前を変えると、プレイヤーの記録や設定が消える。
 - 画像のパスは `assets/img/...` の**相対パス**のまま使う（`/assets/...` のような絶対パスは GitHub Pages のサブパス `/ClaudeGame003/` で壊れる）。
+
+## フォント・第三者素材のルール
+- 外部の CDN（Google Fonts など）からフォントやライブラリを読み込まない。アプリ化したときにオフラインで動かなくなるため。
+- フォントは `assets/fonts/` に同梱済み（SIL OFL 1.1）。各フォルダの `OFL.txt` は削除・変更しない。
+- 新しいフォント・画像・音声などの第三者素材を追加するときは、ライセンス（商用利用・広告付きアプリ・再配布の可否）を正規の配布元で確認し、`THIRD_PARTY_NOTICES.md` とアプリ内の「ライセンス情報」を更新する。権利が確認できない素材は入れない。
 
 ## 動作確認のしかた
 ```bash
@@ -63,6 +70,6 @@ node tests/smoke-test.mjs
 - 作業は作業用ブランチで行い、プルリクエストでオーナーに確認してもらってから `main` にマージする。
 
 ## 今後の予定（優先順の目安）
-1. PWA 化（アイコン・manifest）、Google Fonts の同梱（オフライン・アプリ化に向けて）
+1. PWA 化（アイコン・manifest）
 2. Capacitor 導入（`docs/MIGRATION_NOTES.md` の「Capacitor の注意点」を参照）
 3. 広告（Web 用と アプリ用 AdMob を `ads.js` などに分けて実装）

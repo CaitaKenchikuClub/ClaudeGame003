@@ -71,7 +71,7 @@
 ## D. Capacitor でアプリ化する際の注意点（今後の参考）
 
 1. **フォルダ構成**：Capacitor はアプリに入れるファイルを1つのフォルダ（`webDir`、例：`www/`）にまとめる必要がある。アプリ化の段階で、ゲームのファイルを `www/` に移し、GitHub Pages も GitHub Actions で `www/` を公開する形に変えるのが分かりやすい（今回は初めての公開を簡単にするため、ルートに置いている）。
-2. **Google Fonts**：アプリはオフラインでも動くべきなので、フォントファイルを同梱する（どちらのフォントも SIL Open Font License で、同梱できる）。
+2. **【対応済み 2026-10-15】Google Fonts**：フォントを `assets/fonts/` に同梱し、外部への通信をなくした（詳細は `THIRD_PARTY_NOTICES.md`）。（元のメモ：アプリはオフラインでも動くべきなので、フォントファイルを同梱する。どちらのフォントも SIL Open Font License で、同梱できる）。
 3. **保存データ**：iOS の WebView は、端末の空き容量が少ないと `localStorage` を消すことがある【一般的な注意点】。大事なデータが増えたら `@capacitor/preferences` に移すことを検討する（`broc-best` の移し替え処理が必要）。
 4. **振動**：iOS は `navigator.vibrate` に対応していない。アプリでは `@capacitor/haptics` を使うと振動させられる。
 5. **音**：iOS はマナーモードのとき Web Audio が鳴らないことがある【推測：要実機確認】。最初のタップで音を出す処理は元からある。

@@ -1,0 +1,29 @@
+/*
+ * Local copies of the fonts previously loaded from Google Fonts
+ * (same family names / weights / font-display as the Google Fonts CSS, so the look is unchanged).
+ * Fonts are licensed under the SIL Open Font License 1.1 — see OFL.txt in each folder
+ * and THIRD_PARTY_NOTICES.md. Files are full (not subset) WOFF2 conversions of the
+ * TTFs in https://github.com/google/fonts (ofl/delagothicone, ofl/mplusrounded1c).
+ * Paths are relative to this file so they work on GitHub Pages and in a Capacitor WebView.
+ */
+@font-face {
+  font-family: 'Dela Gothic One';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(DelaGothicOne/DelaGothicOne-Regular.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'M PLUS Rounded 1c';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(MPLUSRounded1c/MPLUSRounded1c-Medium.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'M PLUS Rounded 1c';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url(MPLUSRounded1c/MPLUSRounded1c-ExtraBold.woff2) format('woff2');
+}

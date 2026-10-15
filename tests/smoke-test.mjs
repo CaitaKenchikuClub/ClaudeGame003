@@ -37,12 +37,18 @@ const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+// Every request must stay on our own server (fonts are bundled; no Google Fonts or other CDNs)
+const external = [];
+ctx.on('request', r => { if (!r.url().startsWith(BASE) && !r.url().startsWith('data:')) external.push(r.url()); });
 page.on('response', r => { if (r.status() >= 400 && !r.url().endsWith('favicon.ico')) errors.push(r.status() + ' ' + r.url()); });
 
 await page.goto(BASE + 'index.html', { waitUntil: 'load' });
 await page.waitForTimeout(800);
 check('title', (await page.title()) === 'ブロッコリーキャッチ');
 const imgs = await page.evaluate(() => [...document.images].map(i => i.complete && i.naturalWidth > 0));
+await page.evaluate(() => document.fonts.ready);
+const loadedFonts = await page.evaluate(() => [...new Set([...document.fonts].filter(f => f.status === 'loaded').map(f => f.family.replace(/["']/g, '') + ' ' + f.weight))].sort().join(', '));
+check('bundled fonts loaded (Dela Gothic One 400, M PLUS Rounded 1c 500/800)', loadedFonts === 'Dela Gothic One 400, M PLUS Rounded 1c 500, M PLUS Rounded 1c 800', loadedFonts);
 check('4 character images loaded', imgs.length === 4 && imgs.every(Boolean));
 check('start overlay visible', await page.evaluate(() => !document.getElementById('overlay').hidden));
 
@@ -139,6 +145,13 @@ check('auto-pause: つづける resumes', !(await shown('menu')) && (await T('t'
 const muteBefore = await page3.evaluate(() => localStorage.getItem('broc-mute'));
 await page3.tap('#snd');
 check('one-tap mute button still toggles', (await page3.evaluate(() => localStorage.getItem('broc-mute'))) === (muteBefore === '1' ? '0' : '1'));
+await page3.tap('#menuBtn'); await page3.tap('#licBtn');
+await page3.click('.lic details summary'); await page3.waitForTimeout(300);
+check('license screen shows the bundled OFL text', (await shown('menuLicense')) && (await page3.textContent('.lic pre')).includes('SIL OPEN FONT LICENSE Version 1.1'));
+await page3.tap('#licBack');
+check('license screen: もどる returns to the menu', (await shown('menuMain')) && !(await shown('menuLicense')));
+await page3.tap('#resume');
+check('no external requests (fonts are local)', external.length === 0, [...new Set(external)].slice(0, 3).join(' | '));
 check('heart/menu: no error', errors3.length === 0, errors3.join(' | '));
 
 await page.screenshot({ path: path.join(ROOT, 'tests', 'last-run.png') });
