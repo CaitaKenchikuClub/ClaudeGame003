@@ -200,6 +200,7 @@ const SND=(()=>{
     noiseBuf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);
     const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
     document.addEventListener('visibilitychange',()=>{if(!ac)return;document.hidden?ac.suspend():ac.resume();});
+    for(const k in FILES)FILES[k].req.then(ab=>ab?ac.decodeAudioData(ab,b=>ready(k,b),()=>ready(k,false)):ready(k,false));
     return true;
   }
   function wake(){if(!init())return false;if(ac.state==='suspended')ac.resume();return true;}
@@ -298,11 +299,27 @@ const SND=(()=>{
       }}),
   };
 
+  /* --- recorded tracks: bundled audio files replace a synthesized song (the synth version stays as fallback) --- */
+  const FILES={game:{src:'assets/audio/bgm-game.mp3',len:94.36,gain:.9}};   // len = exact length of the source WAV (loop length)
+  for(const k in FILES)FILES[k].req=fetch(FILES[k].src).then(r=>r.ok?r.arrayBuffer():null).catch(()=>null);   // download early, decode once audio starts
+  function ready(k,buf){FILES[k].buf=buf;if(wantSong===k&&!seq)play(k);}
+  function playFile(f){
+    // MP3 decoders may add a few ms of silence first: start the loop at the first audible sample, then loop exactly f.len seconds
+    const d=f.buf.getChannelData(0);let i=0;while(i<d.length&&i<f.buf.sampleRate*.2&&Math.abs(d[i])<.003)i++;
+    const off=i<f.buf.sampleRate*.2?i/f.buf.sampleRate:0,bus=ac.createGain(),src=ac.createBufferSource();
+    bus.gain.value=f.gain;bus.connect(musicBus);
+    src.buffer=f.buf;src.loop=true;src.loopStart=off;src.loopEnd=Math.min(f.buf.duration,off+f.len);
+    src.connect(bus);src.start(ac.currentTime+.05,off);seq={bus,src,timer:0};
+  }
+
   /* --- sequencer --- */
   function play(name,onEnd){
     wantSong=name;
     if(!ac)return;
     stop();
+    const f=FILES[name];
+    if(f&&f.buf===undefined)return;   // still loading: ready() starts it if it is still wanted
+    if(f&&f.buf){playFile(f);return;}
     const song=SONGS[name],bus=ac.createGain();bus.gain.value=song.gain;bus.connect(musicBus);
     const s={song,bus,step:0,next:ac.currentTime+.08,onEnd,timer:0};
     s.timer=setInterval(()=>tick(s),25);seq=s;tick(s);
@@ -323,6 +340,7 @@ const SND=(()=>{
     if(!seq)return;
     clearInterval(seq.timer);
     const b=seq.bus;b.gain.setTargetAtTime(0,ac.currentTime,.05);setTimeout(()=>b.disconnect(),400);
+    if(seq.src)seq.src.stop(ac.currentTime+.4);
     seq=null;
   }
 
