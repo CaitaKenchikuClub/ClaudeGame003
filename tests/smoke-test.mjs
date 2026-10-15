@@ -12,7 +12,7 @@ catch { pw = await import('/opt/node22/lib/node_modules/playwright/index.mjs'); 
 const { chromium, devices } = pw;
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const TYPES = { '.html': 'text/html; charset=utf-8', '.webp': 'image/webp', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.webp': 'image/webp', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.mp3': 'audio/mpeg' };
 // Serve under a sub path like GitHub Pages does (/ClaudeGame003/) so absolute paths would fail here too
 const PREFIX = '/ClaudeGame003/';
 const server = http.createServer((req, res) => {
@@ -38,7 +38,8 @@ const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 // Every request must stay on our own server (fonts are bundled; no Google Fonts or other CDNs)
-const external = [];
+const external = [], bgm = [];
+page.on('response', r => { if (r.url().endsWith('assets/audio/bgm-game.mp3')) bgm.push(r.status()); });
 ctx.on('request', r => { if (!r.url().startsWith(BASE) && !r.url().startsWith('data:')) external.push(r.url()); });
 page.on('response', r => { if (r.status() >= 400 && !r.url().endsWith('favicon.ico')) errors.push(r.status() + ' ' + r.url()); });
 
@@ -62,6 +63,7 @@ const parsed = man.manifest || {};   // Chromium's resolved view of the manifest
 // No explicit "id": it would be resolved against the origin (= every app on caitakenchikuclub.github.io); the default id is start_url
 check('PWA: start_url / scope / id resolve to the sub-directory', parsed.startUrl === BASE && parsed.scope === BASE && parsed.id === BASE, `${parsed.startUrl} ${parsed.scope} ${parsed.id}`);
 check('PWA: standalone + portrait, icons resolve under the sub-directory', manJson.display === 'standalone' && manJson.orientation === 'portrait' && (parsed.icons || []).length === 3 && parsed.icons.every(i => i.url.startsWith(BASE + 'assets/icons/')), (parsed.icons || []).map(i => i.url).join(' '));
+check('in-game BGM file is downloaded (assets/audio/bgm-game.mp3)', bgm.includes(200), bgm.join(','));
 check('4 character images loaded', imgs.length === 4 && imgs.every(Boolean));
 check('start overlay visible', await page.evaluate(() => !document.getElementById('overlay').hidden));
 
@@ -190,6 +192,16 @@ for (const seed of [11, 22]) {
 }
 check('fair spawn: no far-apart simultaneous catchables', far === 0, `${far} pairs in ${spawned} items`);
 check('fair spawn: no cucumber on top of a catchable', cuke === 0, `${cuke} pairs in ${spawned} items`);
+
+// If the BGM file cannot be loaded (e.g. opened from file://), the game falls back to the synthesized song and keeps working
+const page5 = await ctx.newPage();
+const errors5 = [];
+page5.on('pageerror', e => errors5.push(e.message));
+await page5.route('**/bgm-game.mp3', r => r.abort());
+await page5.goto(BASE + 'index.html', { waitUntil: 'load' });
+await page5.waitForTimeout(500);
+await page5.tap('#start'); await page5.waitForTimeout(1500);
+check('game still runs when the BGM file is unavailable', (await page5.evaluate(() => document.getElementById('overlay').hidden)) && errors5.length === 0, errors5.join(' | '));
 
 await page.screenshot({ path: path.join(ROOT, 'tests', 'last-run.png') });
 await browser.close(); server.close();

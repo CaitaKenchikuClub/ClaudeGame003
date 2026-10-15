@@ -25,6 +25,7 @@ index.html                ゲーム本体（HTML + CSS + JS を1ファイルに�
 assets/img/*.webp         キャラクター画像4枚（元は index.html に base64 で埋め込まれていた）
 assets/fonts/             同梱フォント（WOFF2）と各フォントの OFL.txt、fonts.css（@font-face）
 assets/icons/             PWA・ホーム画面用アイコン（192／512／180／32px PNG）
+assets/audio/bgm-game.mp3 プレイ中の BGM（Suno で制作、94.36秒ループ）。元の WAV はオーナーが保管
 manifest.webmanifest      PWA の設定（アプリ名・アイコン・縦画面・standalone）。パスは相対、id は書かない
 design/icon-source.webp   アイコンの元画像（1254×1254。Capacitor のアプリアイコン生成にも使う）
 THIRD_PARTY_NOTICES.md    第三者の著作物・ライセンス一覧（ストア審査用）
@@ -39,7 +40,7 @@ GAME_SPEC.md              ゲーム仕様書
 1. `<head>`：文字コード、viewport（`viewport-fit=cover`）、タイトル、**元のアーティファクト環境が自動で入れていた基本 CSS**（セーフエリアの余白など。見た目を保つためそのまま残している）、同梱フォントの読み込み（`assets/fonts/fonts.css` + preload）。
 2. `<body>` 内の `<style>`：ゲームの CSS（色は `:root` の CSS 変数）。
 3. HTML：`.hud`（スコア・ライフ・ベスト・音ボタン・メニューボタン）、`#stage` > `canvas#cv` + `#overlay`（スタート／ゲームオーバーのカード） + `#menu`（ポーズ・設定メニュー）。
-4. `<script>` 1つ目：`SND` — Web Audio による BGM・効果音の合成（音声ファイルなし）。
+4. `<script>` 1つ目：`SND` — Web Audio による BGM・効果音。プレイ中の BGM だけは `FILES`（`assets/audio/bgm-game.mp3`）を `AudioBufferSourceNode` でループ再生し、読み込めないときは合成の曲に戻る。スタート画面・ゲームオーバーの曲と効果音は合成。
 5. `<script>` 内の即時関数：ゲーム本体（`resize` / `spawn` / 描画関数 / `step(dt)` / `draw()` / `loop` / `start()` / `end()` / 入力処理）。
    - ポーズ・設定メニュー（`#menu`）の処理は即時関数の後半（`openMenu` / `closeMenu`）。ポーズ中は `paused=true` で `step()` を呼ばない。
 - コードは 1 行に詰めた書き方になっている。編集するときは**周りの書き方に合わせる**。整形し直すなどの差分だけの変更はしない。
