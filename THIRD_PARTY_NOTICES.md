@@ -1,0 +1,62 @@
+# 第三者の著作物・ライセンス一覧（THIRD_PARTY_NOTICES）
+
+ブロッコリーキャッチに含まれる、または使用している第三者の著作物の一覧です。
+ストア審査（Google Play／App Store）やライセンス表示の確認に使います。
+最終更新：2026-10-15
+
+## 1. アプリに同梱しているもの
+
+### 1-1. フォント
+
+| 項目 | Dela Gothic One | M PLUS Rounded 1c |
+|---|---|---|
+| 正式名（ファミリー名） | Dela Gothic One | M PLUS Rounded 1c（フォント内部名：Rounded Mplus 1c） |
+| 作者 | artakana（Dela Gothic Project） | Coji Morishita, M+ Fonts Project |
+| 著作権表示 | Copyright 2020 The Dela Gothic Project Authors (https://github.com/syakuzen/DelaGothic) | Copyright 2016 The Rounded M+ Project Authors. |
+| ライセンス | SIL Open Font License 1.1（OFL-1.1） | SIL Open Font License 1.1（OFL-1.1） |
+| 予約フォント名（Reserved Font Name） | なし | なし |
+| 入手元 | Google Fonts 公式リポジトリ https://github.com/google/fonts/tree/main/ofl/delagothicone | Google Fonts 公式リポジトリ https://github.com/google/fonts/tree/main/ofl/mplusrounded1c |
+| 上流（オリジナル） | https://github.com/syakuzen/DelaGothic | https://github.com/coz-m/MPLUS_FONTS |
+| バージョン | 1.005 | 1.059.20150529 |
+| 同梱ファイル | `assets/fonts/DelaGothicOne/DelaGothicOne-Regular.woff2`（ウェイト400） | `assets/fonts/MPLUSRounded1c/MPLUSRounded1c-Medium.woff2`（500）、`MPLUSRounded1c-ExtraBold.woff2`（800） |
+| ライセンス全文 | `assets/fonts/DelaGothicOne/OFL.txt` | `assets/fonts/MPLUSRounded1c/OFL.txt` |
+| アプリ内での表示 | 設定メニュー（≡）→「ライセンス情報」 | 同左 |
+
+**OFL 1.1 による利用条件（ライセンス本文より）**
+
+| 確認事項 | 結果 | 根拠（OFL 1.1 本文） |
+|---|---|---|
+| 商用ゲームアプリでの利用 | ✅ 可 | 前文「use, study, copy, merge, embed, modify, redistribute, and sell」 |
+| 広告付きアプリでの利用 | ✅ 可（利用目的の制限なし） | 同上。用途の制限条項はない |
+| Android／iOS アプリへの同梱・再配布 | ✅ 可 | 第2条「may be bundled, redistributed and/or sold with any software」 |
+| フォント単体での販売 | ❌ 不可 | 第1条 |
+| 必要な表示 | 著作権表示とライセンス全文を各コピーに含める | 第2条（独立したテキストファイル等で可） |
+| 形式変換（TTF→WOFF2） | 「改変版（Modified Version）」に当たるが可。予約フォント名がないため名前の変更は不要 | 定義「by changing formats」、第3条 |
+| 改変版のライセンス | OFL 1.1 のまま配布する（他のライセンスに変えない） | 第5条 |
+| 作者名を宣伝に使うこと | 不可（作者・著作権者の名前で改変版を宣伝・推奨しない） | 第4条 |
+| ゲーム画面などフォントで作った成果物 | OFL の対象外（自由） | 第5条 後半 |
+
+**行った改変**：TTF から WOFF2 への**形式変換のみ**（fontTools で変換。グリフ・文字・メタデータは一切削っていない＝サブセット化なし）。変換後も、フォント内部の著作権表示・ライセンス情報（name テーブル）はそのまま残っている。
+
+**補足**：google/fonts リポジトリの `ofl/mplusrounded1c/` には OFL.txt がない（2026-10-15 時点）。そのため `assets/fonts/MPLUSRounded1c/OFL.txt` は、フォントファイルに埋め込まれた著作権表示「Copyright 2016 The Rounded M+ Project Authors.」と、改変していない OFL 1.1 の本文で作成した。本文は上流リポジトリ coz-m/MPLUS_FONTS の OFL.txt と一字一句同じであることを確認済み。ライセンスが OFL であることは、google/fonts の `METADATA.pb`（`license: "OFL"`）と、フォント内部のライセンス記述（name ID 13・14）で確認した。
+
+### 1-2. 画像
+
+| ファイル | 内容 | 権利 |
+|---|---|---|
+| `assets/img/chara.webp`、`up.webp`、`upJoy.webp`、`upSad.webp` | キャラクターのイラスト | **【要確認】** 元のアーティファクトに埋め込まれていた画像。作者・入手方法（自作・画像生成AI・依頼など）がコードからは分からない。ストア公開前に、オーナーが権利（商用利用・広告付き配布ができるか）を確認すること |
+
+### 1-3. 音声
+- 同梱している音声ファイルはない。BGM・効果音はすべてプログラム（Web Audio API）でその場で合成しており、曲もコード内で作られたもの。
+
+## 2. 同梱していないもの（端末側の機能を使用）
+- **絵文字**（💚 🤍 など）：端末に搭載されている絵文字フォント（Apple Color Emoji、Noto Color Emoji、Segoe UI Emoji など）で表示している。アプリにフォントは含めておらず、再配布もしていない。
+- **フォールバック用の日本語フォント**（Hiragino Sans、Yu Gothic など）：CSS で名前を指定しているだけで、同梱していない。
+
+## 3. 開発時のみ使用（アプリには含まれない）
+- **Playwright**（Apache License 2.0）：`tests/smoke-test.mjs` の自動テストで使用。アプリには含まれない。
+- **fontTools / Brotli**（MIT License）：フォントの WOFF2 変換に使用。アプリには含まれない。
+
+## 4. 外部サービスへの通信
+- なし（2026-10-15 時点）。以前使っていた Google Fonts への通信は、フォントの同梱によってなくなった。
+- `archive/original-artifact.html`（移行前の元ファイル。参照用でゲームでは使わない）には Google Fonts の読み込みが残っている。Capacitor でアプリ化するときは、このフォルダをアプリに含めないこと。
