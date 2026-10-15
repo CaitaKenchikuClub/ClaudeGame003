@@ -77,7 +77,7 @@ async function setHidden(p, on) { await p.evaluate(on => { Object.defineProperty
   const img = await page.evaluate(() => { const i = document.querySelector('.ad-house-link img'), r = i.getBoundingClientRect(); return { nr: i.naturalWidth / i.naturalHeight, rr: r.width / r.height, inView: r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth }; });
   check('house ad: image keeps its aspect ratio and fits the screen', Math.abs(img.nr - img.rr) / img.nr < 0.01 && img.inView, `natural ${img.nr.toFixed(3)} shown ${img.rr.toFixed(3)}`);
   await page.tap('.ad-house-link img'); await page.waitForTimeout(100);
-  check('house ad: tapping the image opens the configured URL', (await page.evaluate(() => window.__opened[0])) === 'https://caita.ai/digest/detail/01KVHZWQG2SVK1KQJCGTR6PYFK');
+  check('house ad: tapping the image opens the configured URL', (await page.evaluate(() => window.__opened[0] === window.ADS_CONFIG.houseAd.url && window.__opened[0].startsWith('https://'))));
   check('house ad: game stays frozen while the ad is shown', (await g(page)).t === b.t);
   await page.waitForTimeout(5000);
   const close = await rect(page, '.ad-house-close'), imgR = await rect(page, '.ad-house-link img');

@@ -50,7 +50,7 @@
 - キャラクター「校長」は Caita建築部 が著作権を持つキャラクター。画像はすべて Caita建築部 が ChatGPT で生成したもので、使用に問題ないことをオーナー（Caita建築部）が確認済み（2026-10-15、オーナーの申告による）。
 - 第三者の素材ではなく自作素材のため、アプリ内の「ライセンス情報」には載せていない。
 
-| `assets/ads/house-ad.webp` | ハウス広告（Pickle♡Mellow の告知画像。クレジット表記：Caita Pickle♡Mellow 運営委員会）。リンク先は `ads-config.js` | Caita建築部（Pickle♡Mellow は Caita建築部が権利を持つキャラクター。画像は Caita建築部が ChatGPT で生成。使用に問題ないことをオーナーが確認済み：2026-10-15） |
+| `assets/ads/house-ad-kenchikubu.webp` | ハウス広告（「けんちくぶ！いろいろやってます」の告知画像。キャラクター「校長」）。リンク先は `ads-config.js`（https://lit.link/kenchikubu ） | Caita建築部（オーナーが ChatGPT で生成。使用に問題ないことをオーナーが確認済み：2026-10-15）。以前の Pickle♡Mellow の画像は 2026-10-15 に差し替え |
 
 ### 1-3. 音声
 | ファイル | 内容 | 権利 |
