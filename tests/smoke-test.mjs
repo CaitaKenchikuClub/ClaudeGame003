@@ -89,6 +89,49 @@ const frame = () => page2.evaluate(() => document.getElementById('cv').toDataURL
 const f1 = await frame(); await page2.waitForTimeout(1000);
 check('multi-drop: "もう一回" restarts and animates', f1 !== await frame());
 
+// 💚 recovery item + pause/settings menu. Test-only hooks expose a few internals.
+const page3 = await ctx.newPage();
+const errors3 = [];
+page3.on('pageerror', e => errors3.push(e.message));
+await page3.route('**/index.html', async route => {
+  const body = await (await route.fetch()).text();
+  const hook = "window.__t={score:v=>{if(v!=null){score=v;hud()}return score},lives:v=>{if(v!=null){lives=v;hud()}return lives},t:()=>t,types:()=>items.map(i=>i.type)," +
+    "add:(type,ground)=>items.push({type,x:ground?10:P.x,y:ground?GROUND-1:basketY()-14,vx:0,vy:100,rot:0,vr:0,size:30})};";
+  route.fulfill({ contentType: 'text/html; charset=utf-8', body: body.replace('function loop(now){', hook + 'function loop(now){') });
+});
+await page3.goto(BASE + 'index.html', { waitUntil: 'load' });
+await page3.waitForTimeout(500);
+const T = (f, ...a) => page3.evaluate(([f, a]) => window.__t[f](...a), [f, a]);
+const shown = id => page3.evaluate(id => { const e = document.getElementById(id); return !e.hidden && e.offsetParent !== null; }, id);
+await page3.tap('#start'); await page3.waitForTimeout(200);
+await T('score', 50); await page3.waitForTimeout(1600);
+check('heart: spawns after score 50', (await T('types')).includes('heart'));
+await T('lives', 1); await T('add', 'heart'); await page3.waitForTimeout(200);
+check('heart: catching restores a life', (await T('lives')) === 2);
+await T('lives', 3); await T('add', 'heart'); await page3.waitForTimeout(200);
+check('heart: lives never exceed 3', (await T('lives')) === 3);
+await T('add', 'heart', true); await page3.waitForTimeout(200);
+check('heart: missing it costs nothing', (await T('lives')) === 3);
+
+await page3.tap('#menuBtn'); await page3.waitForTimeout(100);
+const t1 = await T('t'); await page3.waitForTimeout(600);
+check('menu: opens and pauses the game', (await shown('menu')) && t1 === await T('t'));
+await page3.evaluate(() => { for (const [id, v] of [['volBgm', 40], ['volSe', 25]]) { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('input')); } });
+check('menu: BGM / SE volumes saved separately', JSON.stringify(await page3.evaluate(() => [localStorage.getItem('broc-vol-bgm'), localStorage.getItem('broc-vol-se')])) === '["0.4","0.25"]');
+await page3.tap('#retry');
+check('menu: retry asks for confirmation', await shown('menuConfirm'));
+await T('score', 37);
+await page3.tap('#retryNo');
+check('menu: cancelling keeps the game', (await shown('menuMain')) && (await T('score')) === 37);
+await page3.tap('#resume'); await page3.waitForTimeout(300);
+check('menu: resume continues the game', !(await shown('menu')) && (await T('t')) > t1);
+await page3.tap('#menuBtn'); await page3.tap('#retry'); await page3.tap('#retryYes'); await page3.waitForTimeout(300);
+check('menu: confirmed retry restarts from zero', !(await shown('menu')) && (await T('score')) === 0 && (await T('t')) < 1);
+const muteBefore = await page3.evaluate(() => localStorage.getItem('broc-mute'));
+await page3.tap('#snd');
+check('one-tap mute button still toggles', (await page3.evaluate(() => localStorage.getItem('broc-mute'))) === (muteBefore === '1' ? '0' : '1'));
+check('heart/menu: no error', errors3.length === 0, errors3.join(' | '));
+
 await page.screenshot({ path: path.join(ROOT, 'tests', 'last-run.png') });
 await browser.close(); server.close();
 process.exit(results.every(Boolean) ? 0 : 1);
