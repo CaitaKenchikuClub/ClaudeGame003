@@ -161,7 +161,52 @@ for (const [name, viewport] of [['320x568', { width: 320, height: 568 }], ['375x
   await ctx.close();
 }
 await rewardedCase('?ads=mock', 'reward', true, 'mock rewarded: reward earned → +1 life, countdown');
-await rewardedCase('?ads=mock', 'cancel', false, 'mock rewarded: closed early → no life, result screen');
+{
+  // closed early → back to the card (no life) and the player may choose to watch again, any number of times
+  const { ctx, page, errors } = await open('?ads=mock');
+  await page.tap('#start'); await page.waitForTimeout(300); await dieToContinue(page);
+  const t0 = (await g(page)).t;
+  for (let n = 1; n <= 2; n++) {
+    await page.tap('#contAd'); await page.waitForTimeout(200);
+    await page.click('.ad-mock-reward button[data-r="cancel"]'); await page.waitForTimeout(1500);
+    const s = await g(page);
+    check(`closed early (#${n}) → no life, back to the card offering to watch again`, (await visible(page, '#cont')) && s.lives === 0 && !s.running && s.t === t0 &&
+      (await page.textContent('#contAd')) === 'もう一度広告を見る' && (await page.textContent('#contMsg')).includes('最後まで見ると'));
+  }
+  await page.tap('#contAd'); await page.waitForTimeout(200);
+  check('watch again: the next AdMob ad is shown (already loaded)', await visible(page, '.ad-mock-reward'));
+  await page.click('.ad-mock-reward button[data-r="reward"]'); await page.waitForTimeout(1300);
+  check('watched to the end → exactly +1 life, countdown', (await g(page)).lives === 1 && (await g(page)).cd > 0);
+  await page.waitForTimeout(2600); await page.waitForTimeout(2100);
+  await dieToContinue(page);
+  check('after a granted continue, no further continue in this play', !(await visible(page, '#cont')) && (await visible(page, '#overlay')));
+  check('watch again: no JS errors', errors.length === 0, errors.join(' | '));
+  await ctx.close();
+}
+{
+  // closed early, next AdMob ad not loaded yet → the house ad is shown instead of waiting
+  const { ctx, page } = await open('?ads=mock&loaddelay=2500');
+  await page.waitForTimeout(2600);
+  await page.tap('#start'); await page.waitForTimeout(300); await dieToContinue(page);
+  await page.tap('#contAd'); await page.waitForTimeout(200);
+  await page.click('.ad-mock-reward button[data-r="cancel"]');
+  await page.waitForFunction(() => !document.getElementById('cont').hidden, null, { timeout: 5000 });
+  await page.tap('#contAd'); await page.waitForTimeout(200);
+  check('watch again while the next ad is still loading → house ad', (await visible(page, '.ad-house')) && !(await visible(page, '.ad-mock-reward')));
+  await ctx.close();
+}
+{
+  // closed early, then the player ends the game
+  const { ctx, page } = await open('?ads=mock');
+  await page.tap('#start'); await page.waitForTimeout(300); await dieToContinue(page);
+  await page.tap('#contAd'); await page.waitForTimeout(200);
+  await page.click('.ad-mock-reward button[data-r="cancel"]'); await page.waitForTimeout(1500);
+  await page.tap('#contEnd'); await page.waitForTimeout(300);
+  check('closed early → "end" goes to the result screen without a life', (await visible(page, '#overlay')) && (await g(page)).lives === 0 && (await page.textContent('#txt')).includes('ごちそうさま'));
+  await page.tap('#start'); await page.waitForTimeout(300); await dieToContinue(page);
+  check('next play starts with the normal continue card again', (await page.textContent('#contAd')) === '広告を見てライフ＋1');
+  await ctx.close();
+}
 {
   // AdMob ad fails to show (network error etc.) → the house ad is shown instead, and closing it continues the game
   const { ctx, page, errors } = await open('?ads=mock');
