@@ -29,6 +29,9 @@ await new Promise(r => server.listen(0, r));
 const BASE = `http://localhost:${server.address().port}${PREFIX}`;
 
 const results = [];
+// When lives hit 0 the continue card (rewarded ad / house ad) may appear first: decline it to reach the result screen
+const shownSel = (p, id) => p.evaluate(id => !document.getElementById(id).hidden, id);
+async function declineContinue(p) { if (await shownSel(p, 'cont')) await p.tap('#contEnd'); }
 const check = (name, ok, info = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${info ? '  (' + info + ')' : ''}`); };
 
 const browser = await chromium.launch();
@@ -75,7 +78,9 @@ await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.8);
 await page.mouse.down();
 for (let i = 0; i < 10; i++) { await page.mouse.move(box.x + box.width * (i % 2 ? 0.2 : 0.8), box.y + box.height * 0.8, { steps: 8 }); await page.waitForTimeout(100); }
 await page.mouse.up();
-await page.waitForFunction(() => !document.getElementById('overlay').hidden, null, { timeout: 120000 });
+await page.waitForFunction(() => !document.getElementById('overlay').hidden || !document.getElementById('cont').hidden, null, { timeout: 120000 });
+check('continue card offered at 0 lives (web: house ad)', await shownSel(page, 'cont'));
+await declineContinue(page);
 const txt = (await page.textContent('#txt')).trim();
 check('game over screen', txt.startsWith('ごちそうさま'), txt);
 // A best score is only stored when it beats the previous best, so a 0-point round stores nothing
@@ -104,6 +109,7 @@ await page2.waitForTimeout(500);
 await page2.tap('#start'); await page2.waitForTimeout(300);
 await page2.evaluate(() => window.__dropMany());
 await page2.waitForTimeout(800);
+await declineContinue(page2); await page2.waitForTimeout(300);
 check('multi-drop: game over shown', await page2.evaluate(() => !document.getElementById('overlay').hidden));
 check('multi-drop: no error', errors2.length === 0, errors2.join(' | '));
 check('multi-drop: lives shown as 0', (await page2.textContent('#lives')) === '🤍🤍🤍');
