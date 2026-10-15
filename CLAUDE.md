@@ -62,7 +62,6 @@ node tests/smoke-test.mjs
 - 作業は作業用ブランチで行い、プルリクエストでオーナーに確認してもらってから `main` にマージする。
 
 ## 今後の予定（優先順の目安）
-1. 既知の不具合 #1（ゲームオーバー後に止まることがある）の修正 ※オーナーの了承を得てから
-2. PWA 化（アイコン・manifest）、Google Fonts の同梱（オフライン・アプリ化に向けて）
-3. Capacitor 導入（`docs/MIGRATION_NOTES.md` の「Capacitor の注意点」を参照）
-4. 広告（Web 用と アプリ用 AdMob を `ads.js` などに分けて実装）
+1. PWA 化（アイコン・manifest）、Google Fonts の同梱（オフライン・アプリ化に向けて）
+2. Capacitor 導入（`docs/MIGRATION_NOTES.md` の「Capacitor の注意点」を参照）
+3. 広告（Web 用と アプリ用 AdMob を `ads.js` などに分けて実装）
