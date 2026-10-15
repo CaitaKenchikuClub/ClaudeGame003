@@ -29,9 +29,9 @@ window.ADS_CONFIG = {
   },
 
   houseAd: {
-    image: 'assets/ads/house-ad.webp',
-    alt: 'Pickle♡Mellow',
-    url: 'https://caita.ai/digest/detail/01KVHZWQG2SVK1KQJCGTR6PYFK',
+    image: 'assets/ads/house-ad-kenchikubu.webp',
+    alt: 'けんちくぶ！ いろいろやってます',
+    url: 'https://lit.link/kenchikubu',
     closeAfterSec: 5,   // この秒数が過ぎると × で閉じられる（閉じるとコンティニュー）
   },
 };
