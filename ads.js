@@ -6,7 +6,7 @@
  *   Ads.hideBanner()                    hide it (call when play starts)
  *   Ads.onBannerSpace(fn)               fn(px): vertical space the banner occupies incl. gaps (0 = none)
  *   Ads.canContinue()                   true when a rewarded "continue" can be offered right now
- *   Ads.showRewarded() -> Promise<bool> resolves exactly once; true only if the reward was earned
+ *   Ads.showRewarded() -> Promise    resolves exactly once: 'reward' (earned) | 'cancel' (closed early) | 'unavailable'
  *   Ads.privacyOptionsRequired() / Ads.showPrivacyOptions()   UMP privacy settings entry point
  *
  * Back-ends
@@ -14,6 +14,7 @@
  *   - a mock of that plugin for development: add ?ads=mock to the URL (same event flow as the real one)
  *   - the house ad (ADS_CONFIG.houseAd): web version, and in the app when no AdMob rewarded ad is ready
  * Any failure degrades quietly: no banner, and "continue" falls back to the house ad (or is not offered).
+ * If an AdMob rewarded ad cannot be shown (e.g. network error when it starts), the house ad is shown instead.
  */
 (() => {
 'use strict';
@@ -44,6 +45,7 @@ function openUrl(url) {
   if (browser) browser.open({ url }).catch(() => window.open(url, '_blank'));
   else window.open(url, '_blank', 'noopener');
 }
+const houseResult = () => showHouse().then(() => 'reward');   // the house ad can only be closed after its countdown
 function showHouse() {
   return new Promise(done => {
     const el = document.createElement('div'); el.className = 'ad-house'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', '広告');
@@ -81,15 +83,16 @@ function loadReward() {
 function showAdmobRewarded() {
   return new Promise(done => {
     let rewarded = false, dismissed = false, settled = false, grace = 0;
-    const safety = setTimeout(() => settle(rewarded), SHOW_TIMEOUT_MS);
-    function settle(ok) {   // the only place that resolves: duplicate / late events after this are ignored
+    const outcome = () => (rewarded ? 'reward' : 'cancel');
+    const safety = setTimeout(() => settle(outcome()), SHOW_TIMEOUT_MS);
+    function settle(result) {   // the only place that resolves ('reward' | 'cancel' | 'fail'): duplicate / late events after this are ignored
       if (settled) return; settled = true; clearTimeout(grace); clearTimeout(safety);
-      active = null; rewardReady = false; loadReward(); done(!!ok);
+      active = null; rewardReady = false; loadReward(); done(result);
     }
     active = {
-      reward() { rewarded = true; if (dismissed) settle(true); },
-      dismiss() { if (dismissed) return; dismissed = true; if (rewarded) settle(true); else grace = setTimeout(() => settle(rewarded), REWARD_GRACE_MS); },
-      fail() { settle(false); },
+      reward() { rewarded = true; if (dismissed) settle('reward'); },
+      dismiss() { if (dismissed) return; dismissed = true; if (rewarded) settle('reward'); else grace = setTimeout(() => settle(outcome()), REWARD_GRACE_MS); },
+      fail() { if (!dismissed) settle(rewarded ? 'reward' : 'fail'); },   // could not be shown at all
     };
     rewardReady = false;
     Promise.resolve().then(() => admob.showRewardVideoAd()).catch(() => active && active.fail());
@@ -125,7 +128,8 @@ function hideBanner() {
 
 /* ---------- mock of the AdMob plugin (?ads=mock) for testing the flows in a browser ----------
  * ?ads=mock&fail=reward  rewarded ad never loads (→ house ad is used)     &fail=banner  banner fails to load
- * ?ads=mock&order=late   Dismissed arrives before Rewarded                &dup=1        every event is sent twice   */
+ * ?ads=mock&order=late   Dismissed arrives before Rewarded                &dup=1        every event is sent twice
+ * &loaddelay=2000        a rewarded ad takes this many ms to load (default 200)   */
 function createMock() {
   const L = {}, emit = (ev, data) => (L[ev] || []).forEach(f => f(data)), twice = q.get('dup') === '1';
   const send = (ev, data) => { emit(ev, data); if (twice) emit(ev, data); };
@@ -150,7 +154,7 @@ function createMock() {
     resumeBanner: async () => { if (banner) banner.style.display = ''; },
     removeBanner: async () => { if (banner) banner.remove(); banner = null; },
     async prepareRewardVideoAd() {
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, +q.get('loaddelay') || 200));
       if (fail.includes('reward')) { send(EV.rLoadFail, { code: 3 }); throw new Error('no fill'); }
       loaded = true; send(EV.rLoaded, {}); return { adUnitId: 'mock' };
     },
@@ -229,10 +233,14 @@ window.Ads = {
   showBanner, hideBanner,
   onBannerSpace(fn) { spaceFn = typeof fn === 'function' ? fn : () => {}; },
   canContinue: () => !!(admob && rewardReady) || houseOk,
-  showRewarded() {
-    if (admob && rewardReady) return showAdmobRewarded();
-    if (houseOk) return showHouse();
-    return Promise.resolve(false);
+  async showRewarded() {
+    if (admob && rewardReady) {
+      const r = await showAdmobRewarded();
+      if (r === 'fail') return houseOk ? houseResult() : 'unavailable';   // AdMob ad could not be shown (network error etc.): house ad instead
+      return r;   // 'reward' | 'cancel'
+    }
+    if (houseOk) return houseResult();   // web, or the next AdMob ad is not loaded yet (no waiting)
+    return 'unavailable';
   },
   privacyOptionsRequired: () => !!(admob && privacyReq),
   showPrivacyOptions: () => (admob && admob.showPrivacyOptionsForm ? admob.showPrivacyOptionsForm().catch(() => {}) : Promise.resolve()),

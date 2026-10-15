@@ -140,7 +140,7 @@ button.sub{background:var(--card);color:var(--ink)}
         <div class="txt">
           <h2 id="contTitle">ライフが0になりました</h2>
           <div class="big" id="contScore">0</div>
-          <p>広告を見ると、ライフ1つで続きから再開できます（1プレイにつき1回まで）。</p>
+          <p id="contMsg">広告を見ると、ライフ1つで続きから再開できます（1プレイにつき1回まで）。</p>
         </div>
         <div class="foot">
           <button id="contAd" type="button">広告を見てライフ＋1</button>
@@ -415,9 +415,9 @@ function resize(){dpr=Math.min(window.devicePixelRatio||1,2);W=stage.clientWidth
   S=Math.max(.75,Math.min(1.15,H/640));GROUND=H-34;
   P.x=Math.min(Math.max(P.x||W/2,50*S),W-50*S);}
 let best=0;try{best=+localStorage.getItem('broc-best')||0}catch(e){}
-const ADS=window.Ads||{init:()=>Promise.resolve(),showBanner(){},hideBanner(){},onBannerSpace(){},canContinue:()=>false,showRewarded:()=>Promise.resolve(false),privacyOptionsRequired:()=>false,showPrivacyOptions(){}};
+const ADS=window.Ads||{init:()=>Promise.resolve(),showBanner(){},hideBanner(){},onBannerSpace(){},canContinue:()=>false,showRewarded:()=>Promise.resolve('unavailable'),privacyOptionsRequired:()=>false,showPrivacyOptions(){}};
 const INV_T=2,CD_T=3;   // after a continue: 3-2-1 countdown, then 2 s without losing lives
-let contUsed=false,contOpen=false,inv=0,cd=0,runBest=0;
+let contUsed=false,contOpen=false,contBusy=false,inv=0,cd=0,runBest=0;   // contUsed: a life was already restored this play
 $best.textContent=best;
 
 let items=[],pops=[],clouds=[],score=0,lives=3,running=false,paused=false,t=0,spawnT=0,last=0,keys={};
@@ -637,8 +637,13 @@ function hurt(kind){if(inv>0)return;lives--;hud();P.mood='sad';P.moodT=SAD_T;SND
 function gameOver(){   // lives hit 0: freeze everything, keep the best score safe, then offer a continue (once per play) or finish
   running=false;paused=true;P.target=null;keys={};
   if(score>best){best=score;$best.textContent=best;try{localStorage.setItem('broc-best',best)}catch(e){}}
-  if(!contUsed&&ADS.canContinue()){contOpen=true;$('contScore').textContent=score;$('contAd').disabled=$('contEnd').disabled=false;$('cont').hidden=false;$('contAd').focus();}
+  if(!contUsed&&ADS.canContinue()){contOpen=true;$('contScore').textContent=score;showCont(false);}
   else end();
+}
+function showCont(retry){   // continue card; after an ad closed early it offers to watch again (always the player's choice)
+  $('contMsg').textContent=retry?'広告を最後まで見ると、ライフ＋1になります。':'広告を見ると、ライフ1つで続きから再開できます（1プレイにつき1回まで）。';
+  $('contAd').textContent=retry?'もう一度広告を見る':'広告を見てライフ＋1';
+  $('contAd').disabled=$('contEnd').disabled=false;$('cont').hidden=false;$('contAd').focus();
 }
 function resumeAfterContinue(){lives=1;hud();P.mood='happy';P.moodT=0;P.target=null;keys={};cd=CD_T;}   // the loop counts down, then resumes play
 
@@ -692,7 +697,7 @@ function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;
   if(!paused)step(dt);draw();requestAnimationFrame(loop);}
 function start(){
   items=[];pops=[];bird=null;birdT=8;score=0;nextHeart=HEART_EVERY;lives=3;t=0;spawnT=0.4;P.x=W/2;P.target=null;P.vx=0;P.mood='happy';P.moodT=0;hud();
-  contUsed=false;contOpen=false;inv=0;cd=0;runBest=best;paused=false;$('cont').hidden=true;ADS.hideBanner();
+  contUsed=false;contOpen=false;contBusy=false;inv=0;cd=0;runBest=best;paused=false;$('cont').hidden=true;ADS.hideBanner();
   overlay.hidden=true;running=true;
   SND.wake();SND.setTempo(0);SND.fx('start');SND.play('game');
 }
@@ -743,10 +748,15 @@ $('privBtn').onclick=()=>ADS.showPrivacyOptions();
 
 /* ---------- ads: continue with a rewarded ad (max once per play), banner on title / result screens ---------- */
 $('contAd').onclick=()=>{
-  if(!contOpen||contUsed)return;
-  contUsed=true;$('contAd').disabled=$('contEnd').disabled=true;$('cont').hidden=true;SND.hold(true);
-  const done=ok=>{if(!contOpen)return;contOpen=false;SND.hold(false);ok?resumeAfterContinue():end();};   // life only when the reward was earned
-  ADS.showRewarded().then(done,()=>done(false));
+  if(!contOpen||contUsed||contBusy)return;
+  contBusy=true;$('contAd').disabled=$('contEnd').disabled=true;$('cont').hidden=true;SND.hold(true);
+  const done=r=>{   // life only when the reward was earned; closed early → back to the card to choose again
+    if(!contOpen||!contBusy)return;contBusy=false;SND.hold(false);
+    if(r==='reward'){contOpen=false;contUsed=true;resumeAfterContinue();}
+    else if(r==='cancel')showCont(true);
+    else{contOpen=false;end();}
+  };
+  ADS.showRewarded().then(done,()=>done('unavailable'));
 };
 $('contEnd').onclick=()=>{if(contOpen)end();};
 // the banner is only shown when the title / result card still fits below it (otherwise the game screen wins)
