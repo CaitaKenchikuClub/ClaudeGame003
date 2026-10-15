@@ -75,7 +75,7 @@
 3. **保存データ**：iOS の WebView は、端末の空き容量が少ないと `localStorage` を消すことがある【一般的な注意点】。大事なデータが増えたら `@capacitor/preferences` に移すことを検討する（`broc-best` の移し替え処理が必要）。
 4. **振動**：iOS は `navigator.vibrate` に対応していない。アプリでは `@capacitor/haptics` を使うと振動させられる。
 5. **音**：iOS はマナーモードのとき Web Audio が鳴らないことがある【推測：要実機確認】。最初のタップで音を出す処理は元からある。
-6. **アプリの切り替え**：`visibilitychange` で音は止まる。ゲームの一時停止はないので、アプリでは一時停止機能があると良い（新機能として検討）。
+6. **アプリの切り替え**：`visibilitychange` で音が止まり、プレイ中なら自動でポーズする（2026-10-15 対応）。Capacitor の WebView でもアプリがバックグラウンドに回ると `visibilitychange` が発生するはずだが【要実機確認】、届かない場合は `@capacitor/app` の `pause` イベントから同じ処理を呼ぶ。
 7. **Android の戻るボタン**：今は何も処理していない（`@capacitor/app` で対応可能）。
 8. **画面の向き**：縦画面に固定する設定をネイティブ側で行う。
 9. **セーフエリア**：`viewport-fit=cover` と `env(safe-area-inset-*)` は対応済み。Android の全画面表示（edge-to-edge）では実機で確認が必要。

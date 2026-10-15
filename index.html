@@ -607,6 +607,7 @@ function openMenu(){
 }
 function closeMenu(){menu.hidden=true;paused=false;P.target=null;keys={};}
 $('menuBtn').onclick=e=>{e.stopPropagation();menu.hidden?openMenu():closeMenu();};
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&running)openMenu();});   // auto-pause when the app is switched or the screen turns off; stays paused until つづける
 $('resume').onclick=closeMenu;
 $('retry').onclick=()=>showConfirm(true);
 $('retryNo').onclick=()=>showConfirm(false);

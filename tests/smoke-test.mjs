@@ -57,8 +57,10 @@ await page.mouse.up();
 await page.waitForFunction(() => !document.getElementById('overlay').hidden, null, { timeout: 120000 });
 const txt = (await page.textContent('#txt')).trim();
 check('game over screen', txt.startsWith('ごちそうさま'), txt);
-const score = +(await page.evaluate(() => localStorage.getItem('broc-best')) ?? -1);
-check('best score saved to localStorage', score >= 0, 'broc-best=' + score);
+// A best score is only stored when it beats the previous best, so a 0-point round stores nothing
+const score = +(await page.textContent('#txt .big'));
+const stored = await page.evaluate(() => localStorage.getItem('broc-best'));
+check('best score saved to localStorage', score > 0 ? stored === String(score) : stored === null, `score=${score} broc-best=${stored}`);
 await page.tap('#snd');
 check('mute saved to localStorage', (await page.evaluate(() => localStorage.getItem('broc-mute'))) === '1');
 await page.reload(); await page.waitForTimeout(500);
@@ -127,6 +129,13 @@ await page3.tap('#resume'); await page3.waitForTimeout(300);
 check('menu: resume continues the game', !(await shown('menu')) && (await T('t')) > t1);
 await page3.tap('#menuBtn'); await page3.tap('#retry'); await page3.tap('#retryYes'); await page3.waitForTimeout(300);
 check('menu: confirmed retry restarts from zero', !(await shown('menu')) && (await T('score')) === 0 && (await T('t')) < 1);
+// Auto-pause: simulate the page becoming hidden (app switch / screen off)
+const hide = on => page3.evaluate(on => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => on }); document.dispatchEvent(new Event('visibilitychange')); }, on);
+await hide(true); await hide(false);
+const t3 = await T('t'); await page3.waitForTimeout(500);
+check('auto-pause: hiding the page during play pauses it', (await shown('menu')) && (await page3.textContent('#menuTitle')) === 'ポーズ中' && t3 === await T('t'));
+await page3.tap('#resume'); await page3.waitForTimeout(300);
+check('auto-pause: つづける resumes', !(await shown('menu')) && (await T('t')) > t3);
 const muteBefore = await page3.evaluate(() => localStorage.getItem('broc-mute'));
 await page3.tap('#snd');
 check('one-tap mute button still toggles', (await page3.evaluate(() => localStorage.getItem('broc-mute'))) === (muteBefore === '1' ? '0' : '1'));
