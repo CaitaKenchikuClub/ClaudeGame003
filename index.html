@@ -79,6 +79,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
           <div class="legend">
             <div><span>+1</span>ブロッコリー</div>
             <div><span>+5</span>金のブロッコリー</div>
+            <div><span>+💚</span>ハート（ライフ回復）</div>
             <div><span>−♥</span>きゅうり</div>
             <div><span>−♥</span>取りこぼし</div>
             <div><span>?</span>白い鳥が軌道を変える</div>
@@ -260,6 +261,8 @@ const SND=(()=>{
       tone(sfxBus,mtof(60),t+.32,.3,{type:'triangle',to:mtof(58),glide:.3,vol:.12,release:.2});},
     cuke(t){tone(sfxBus,170,t,.22,{type:'square',to:120,glide:.22,vol:.09,lp:900,release:.08});
       tone(sfxBus,mtof(57),t+.24,.26,{type:'triangle',to:mtof(53),glide:.26,vol:.12,release:.2});},
+    heal(t){[72,76,79,84,88].forEach((m,i)=>tone(sfxBus,mtof(m),t+i*.06,.08,{type:'sine',vol:.13,release:.25}));
+      tone(sfxBus,mtof(96),t+.3,.3,{type:'triangle',vol:.06,release:.5});},
     bird(t){[0,.13,.21].forEach((d,i)=>{const f=i===2?2700:2300;tone(sfxBus,f,t+d,.05,{type:'sine',to:f*1.45,glide:.05,vol:.1,release:.04});});},
     blow(t){noise(sfxBus,t,.38,{filter:'bandpass',freq:500,to:2400,sweep:.5,q:2.2,vol:.3,attack:.04});
       noise(sfxBus,t+.02,.07,{filter:'lowpass',freq:1600,vol:.22});noise(sfxBus,t+.11,.07,{filter:'lowpass',freq:1400,vol:.16});},
@@ -301,9 +304,12 @@ const SPR_H=()=>Math.min(230*S,H*.42), SPR_W=()=>SPR_H()*440/684;
 const basketY=()=>GROUND-SPR_H()*(1-0.056);   // basket rim in the upward illustration
 const basketW=()=>SPR_W()*0.72;
 let bird=null,birdT=8;
+const HEART_EVERY=50;let nextHeart=HEART_EVERY;   // a 💚 (life +1, max 3) replaces the next spawn each time the score passes a multiple of 50
 
 function spawn(){
   const lvl=Math.min(t/60,1),r=Math.random();
+  if(score>=nextHeart){nextHeart+=HEART_EVERY;
+    items.push({type:'heart',x:24+Math.random()*(W-48),y:-30,vx:0,vy:(140+lvl*200)*(0.85+Math.random()*0.3),rot:0,vr:(Math.random()-.5)*.8,size:30});return;}
   const type=r<0.06?'gold':r<0.06+0.12+lvl*0.12?'cuke':'broc';
   items.push({type,x:24+Math.random()*(W-48),y:-30,vx:0,vy:(140+lvl*200)*(0.85+Math.random()*0.3),
     rot:Math.random()*6,vr:(Math.random()-.5)*3,size:type==='cuke'?30:30});
@@ -333,6 +339,12 @@ function drawCuke(x,y,s,rot){
   ctx.restore();
   ctx.fillStyle='#f0d24a';ctx.beginPath();ctx.arc(0,-L-2,R*.55,0,Math.PI*2);ctx.fill();ctx.stroke();
   ctx.fillStyle='#6b5a2a';ctx.fillRect(-2,L-1,4,6);
+  ctx.restore();
+}
+
+function drawHeart(x,y,s,rot){
+  ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#000';  // emoji glyphs inherit the fill alpha
+  ctx.font=`${s*1.4}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;ctx.fillText('💚',0,0);
   ctx.restore();
 }
 
@@ -500,23 +512,24 @@ function step(dt){
     if(!it.done&&it.y>by-12&&it.y<by+16&&Math.abs(it.x-P.x)<bw/2+4){
       it.done=true;
       if(it.type==='cuke'){pop(it.x,by-30,'きゅうり!','#3f7a2a');hurt('cuke');}
+      else if(it.type==='heart'){const full=lives>=3;if(!full)lives++;hud();SND.fx('heal');P.mood='joy';P.moodT=JOY_T;pop(it.x,by-30,full?'MAX':'+💚','#3f8a3a');}
       else{const v=it.type==='gold'?5:1;score+=v;if(it.type==='gold'){SND.fx('gold');P.mood='joy';P.moodT=JOY_T;}else SND.fx('catch');pop(it.x,by-30,'+'+v,it.type==='gold'?'#b8820a':'#2f6e2a');hud();}
     }
-    if(!it.done&&it.y>GROUND){it.done=true;if(it.type!=='cuke'){pop(it.x,GROUND-24,'ポトッ',INK);hurt('drop');}}
+    if(!it.done&&it.y>GROUND){it.done=true;if(it.type!=='cuke'&&it.type!=='heart'){pop(it.x,GROUND-24,'ポトッ',INK);hurt('drop');}}
   }
   items=items.filter(i=>!i.done);
   for(const p of pops){p.y-=40*dt;p.a-=dt*1.4;}pops=pops.filter(p=>p.a>0);
 }
 function draw(){
   drawBg();drawSprite();
-  for(const it of items){it.type==='cuke'?drawCuke(it.x,it.y,it.size,reduce?0:it.rot):drawBroc(it.x,it.y,it.size,reduce?0:it.rot,it.type==='gold');}
+  for(const it of items){it.type==='heart'?drawHeart(it.x,it.y,it.size,reduce?0:it.rot):it.type==='cuke'?drawCuke(it.x,it.y,it.size,reduce?0:it.rot):drawBroc(it.x,it.y,it.size,reduce?0:it.rot,it.type==='gold');}
   if(bird)drawBird(bird);
   ctx.textAlign='center';ctx.font='800 20px "M PLUS Rounded 1c",sans-serif';
   for(const p of pops){ctx.globalAlpha=Math.max(0,p.a);ctx.fillStyle=p.color;ctx.fillText(p.text,p.x,p.y);}ctx.globalAlpha=1;
 }
 function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;step(dt);draw();requestAnimationFrame(loop);}
 function start(){
-  items=[];pops=[];bird=null;birdT=8;score=0;lives=3;t=0;spawnT=0.4;P.x=W/2;P.target=null;P.vx=0;P.mood='happy';P.moodT=0;hud();
+  items=[];pops=[];bird=null;birdT=8;score=0;nextHeart=HEART_EVERY;lives=3;t=0;spawnT=0.4;P.x=W/2;P.target=null;P.vx=0;P.mood='happy';P.moodT=0;hud();
   overlay.hidden=true;running=true;
   SND.wake();SND.setTempo(0);SND.fx('start');SND.play('game');
 }
