@@ -14,6 +14,7 @@
  *   - a mock of that plugin for development: add ?ads=mock to the URL (same event flow as the real one)
  *   - the house ad (ADS_CONFIG.houseAd): web version, and in the app when no AdMob rewarded ad is ready
  * Any failure degrades quietly: no banner, and "continue" falls back to the house ad (or is not offered).
+ * If an AdMob rewarded ad cannot be shown (e.g. network error when it starts), the house ad is shown instead.
  */
 (() => {
 'use strict';
@@ -81,15 +82,16 @@ function loadReward() {
 function showAdmobRewarded() {
   return new Promise(done => {
     let rewarded = false, dismissed = false, settled = false, grace = 0;
-    const safety = setTimeout(() => settle(rewarded), SHOW_TIMEOUT_MS);
-    function settle(ok) {   // the only place that resolves: duplicate / late events after this are ignored
+    const outcome = () => (rewarded ? 'reward' : 'cancel');
+    const safety = setTimeout(() => settle(outcome()), SHOW_TIMEOUT_MS);
+    function settle(result) {   // the only place that resolves ('reward' | 'cancel' | 'fail'): duplicate / late events after this are ignored
       if (settled) return; settled = true; clearTimeout(grace); clearTimeout(safety);
-      active = null; rewardReady = false; loadReward(); done(!!ok);
+      active = null; rewardReady = false; loadReward(); done(result);
     }
     active = {
-      reward() { rewarded = true; if (dismissed) settle(true); },
-      dismiss() { if (dismissed) return; dismissed = true; if (rewarded) settle(true); else grace = setTimeout(() => settle(rewarded), REWARD_GRACE_MS); },
-      fail() { settle(false); },
+      reward() { rewarded = true; if (dismissed) settle('reward'); },
+      dismiss() { if (dismissed) return; dismissed = true; if (rewarded) settle('reward'); else grace = setTimeout(() => settle(outcome()), REWARD_GRACE_MS); },
+      fail() { if (!dismissed) settle(rewarded ? 'reward' : 'fail'); },   // could not be shown at all
     };
     rewardReady = false;
     Promise.resolve().then(() => admob.showRewardVideoAd()).catch(() => active && active.fail());
@@ -229,10 +231,14 @@ window.Ads = {
   showBanner, hideBanner,
   onBannerSpace(fn) { spaceFn = typeof fn === 'function' ? fn : () => {}; },
   canContinue: () => !!(admob && rewardReady) || houseOk,
-  showRewarded() {
-    if (admob && rewardReady) return showAdmobRewarded();
-    if (houseOk) return showHouse();
-    return Promise.resolve(false);
+  async showRewarded() {
+    if (admob && rewardReady) {
+      const r = await showAdmobRewarded();
+      if (r === 'fail' && houseOk) return showHouse();   // AdMob ad could not be shown (network error etc.): house ad instead
+      return r === 'reward';
+    }
+    if (houseOk) return showHouse();   // web, or no AdMob ad loaded
+    return false;
   },
   privacyOptionsRequired: () => !!(admob && privacyReq),
   showPrivacyOptions: () => (admob && admob.showPrivacyOptionsForm ? admob.showPrivacyOptionsForm().catch(() => {}) : Promise.resolve()),

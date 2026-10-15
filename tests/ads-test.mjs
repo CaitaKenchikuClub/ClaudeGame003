@@ -162,7 +162,17 @@ for (const [name, viewport] of [['320x568', { width: 320, height: 568 }], ['375x
 }
 await rewardedCase('?ads=mock', 'reward', true, 'mock rewarded: reward earned → +1 life, countdown');
 await rewardedCase('?ads=mock', 'cancel', false, 'mock rewarded: closed early → no life, result screen');
-await rewardedCase('?ads=mock', 'fail', false, 'mock rewarded: failed to show → no life, result screen');
+{
+  // AdMob ad fails to show (network error etc.) → the house ad is shown instead, and closing it continues the game
+  const { ctx, page, errors } = await open('?ads=mock');
+  await page.tap('#start'); await page.waitForTimeout(300); await dieToContinue(page);
+  await page.tap('#contAd'); await page.waitForTimeout(200);
+  await page.click('.ad-mock-reward button[data-r="fail"]'); await page.waitForTimeout(300);
+  check('mock rewarded: failed to show → house ad shown instead', (await visible(page, '.ad-house')) && (await g(page)).lives === 0);
+  await page.waitForTimeout(5100); await page.tap('.ad-house-close'); await page.waitForTimeout(3500);
+  check('…closing the house ad then continues with +1 life', (await g(page)).running && (await g(page)).lives === 1 && errors.length === 0, errors.join(' | '));
+  await ctx.close();
+}
 await rewardedCase('?ads=mock&order=late', 'reward', true, 'mock rewarded: Rewarded arrives after Dismissed → still +1');
 await rewardedCase('?ads=mock&dup=1', 'reward', true, 'mock rewarded: duplicated events → exactly +1');
 {
