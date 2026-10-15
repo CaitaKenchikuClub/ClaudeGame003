@@ -58,6 +58,17 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .hud .snd .off{display:none}
 .hud .snd[aria-pressed="false"] .on{display:none}
 .hud .snd[aria-pressed="false"] .off{display:block}
+.hud .btns{display:flex;gap:8px;flex:none}
+/* pause / settings menu */
+.menu .card{grid-template-columns:1fr}
+.menu h2{font-family:var(--display);font-weight:400;font-size:26px;line-height:1.2;margin:0;color:var(--leaf)}
+.vol{display:grid;grid-template-columns:3.6em 1fr 2.6em;align-items:center;gap:8px;font-weight:800;font-size:14px}
+.vol input{width:100%;height:32px;margin:0;accent-color:var(--leaf)}
+.vol output{text-align:right;font-variant-numeric:tabular-nums}
+.menu .note{font-size:12px;opacity:.7}
+.menu .foot{gap:12px}
+.menu .foot button{min-width:180px}
+button.sub{background:var(--card);color:var(--ink)}
 </style>
 
 <div class="wrap">
@@ -65,9 +76,14 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
     <div class="score"><small>SCORE</small><span id="score">0</span></div>
     <div class="lives" id="lives" aria-label="残りライフ">💚💚💚</div>
     <div class="best">ベスト<br><span id="best">0</span></div>
+    <div class="btns">
     <button class="snd" id="snd" type="button" aria-pressed="true" aria-label="音を出す">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="on" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="off" d="M17 9l5 6M22 9l-5 6"/></svg>
     </button>
+    <button class="snd" id="menuBtn" type="button" aria-label="ポーズ・設定" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h14"/></svg>
+    </button>
+    </div>
   </div>
   <div class="stage" id="stage">
     <canvas id="cv"></canvas>
@@ -95,6 +111,28 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
         </div>
       </div>
     </div>
+    <div class="overlay menu" id="menu" hidden>
+      <div class="card" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+        <div class="txt" id="menuMain">
+          <h2 id="menuTitle">ポーズ中</h2>
+          <label class="vol"><span>BGM</span><input type="range" id="volBgm" min="0" max="100" step="5"><output id="volBgmOut"></output></label>
+          <label class="vol"><span>効果音</span><input type="range" id="volSe" min="0" max="100" step="5"><output id="volSeOut"></output></label>
+          <p class="note" id="muteNote" hidden>いまはミュート中です（右上のスピーカーで解除）</p>
+        </div>
+        <div class="txt" id="menuConfirm" hidden>
+          <h2>リトライしますか？</h2>
+          <p>今回のスコアは記録されず、最初からやり直しになります。</p>
+        </div>
+        <div class="foot" id="menuFoot">
+          <button id="resume" type="button">つづける</button>
+          <button id="retry" class="sub" type="button">リトライ</button>
+        </div>
+        <div class="foot" id="confirmFoot" hidden>
+          <button id="retryYes" type="button">やり直す</button>
+          <button id="retryNo" class="sub" type="button">やめる</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -103,6 +141,8 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 const SND=(()=>{
   let tempoBoost=0,ac=null,master,musicBus,sfxBus,noiseBuf,seq=null,muted=false,wantSong=null,lastBlow=0;
   try{muted=localStorage.getItem('broc-mute')==='1'}catch(e){}
+  const BASE={bgm:.55,se:.8},vol={bgm:1,se:1};   // per-bus volume 0..1 chosen in the settings menu
+  for(const k in vol)try{const v=parseFloat(localStorage.getItem('broc-vol-'+k));if(v>=0&&v<=1)vol[k]=v;}catch(e){}
   const mtof=m=>440*Math.pow(2,(m-69)/12);
   const NOTE={C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
   const midi=n=>{const m=n.match(/^([A-G][b#]?)(\d)$/);return 12*(+m[2]+1)+NOTE[m[1]];};
@@ -115,8 +155,8 @@ const SND=(()=>{
     ac=new AC();
     const comp=ac.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=4;comp.connect(ac.destination);
     master=ac.createGain();master.gain.value=muted?0:.9;master.connect(comp);
-    musicBus=ac.createGain();musicBus.gain.value=.55;musicBus.connect(master);
-    sfxBus=ac.createGain();sfxBus.gain.value=.8;sfxBus.connect(master);
+    musicBus=ac.createGain();musicBus.gain.value=BASE.bgm*vol.bgm;musicBus.connect(master);
+    sfxBus=ac.createGain();sfxBus.gain.value=BASE.se*vol.se;sfxBus.connect(master);
     noiseBuf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);
     const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
     document.addEventListener('visibilitychange',()=>{if(!ac)return;document.hidden?ac.suspend():ac.resume();});
@@ -277,7 +317,11 @@ const SND=(()=>{
     if(!m){wake();if(!seq&&wantSong)play(wantSong);}
     if(ac)master.gain.setTargetAtTime(m?0:.9,ac.currentTime,.04);
   }
-  return {wake,play,stop,fx,setMuted,setTempo(v){tempoBoost=v},get muted(){return muted},get started(){return !!ac}};
+  function setVol(k,v){
+    vol[k]=v;try{localStorage.setItem('broc-vol-'+k,String(v))}catch(e){}
+    if(ac)(k==='bgm'?musicBus:sfxBus).gain.setTargetAtTime(BASE[k]*v,ac.currentTime,.03);
+  }
+  return {wake,play,stop,fx,setMuted,setVol,vol:k=>vol[k],setTempo(v){tempoBoost=v},get muted(){return muted},get started(){return !!ac}};
 })();
 
 (()=>{
@@ -294,7 +338,7 @@ function resize(){dpr=Math.min(window.devicePixelRatio||1,2);W=stage.clientWidth
 let best=0;try{best=+localStorage.getItem('broc-best')||0}catch(e){}
 $best.textContent=best;
 
-let items=[],pops=[],clouds=[],score=0,lives=3,running=false,t=0,spawnT=0,last=0,keys={};
+let items=[],pops=[],clouds=[],score=0,lives=3,running=false,paused=false,t=0,spawnT=0,last=0,keys={};
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 for(let i=0;i<4;i++)clouds.push({x:Math.random(),y:.08+Math.random()*.4,s:.6+Math.random()*.7,v:.004+Math.random()*.006});
 
@@ -527,7 +571,7 @@ function draw(){
   ctx.textAlign='center';ctx.font='800 20px "M PLUS Rounded 1c",sans-serif';
   for(const p of pops){ctx.globalAlpha=Math.max(0,p.a);ctx.fillStyle=p.color;ctx.fillText(p.text,p.x,p.y);}ctx.globalAlpha=1;
 }
-function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;step(dt);draw();requestAnimationFrame(loop);}
+function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;if(!paused)step(dt);draw();requestAnimationFrame(loop);}
 function start(){
   items=[];pops=[];bird=null;birdT=8;score=0;nextHeart=HEART_EVERY;lives=3;t=0;spawnT=0.4;P.x=W/2;P.target=null;P.vx=0;P.mood='happy';P.moodT=0;hud();
   overlay.hidden=true;running=true;
@@ -545,16 +589,42 @@ document.getElementById('start').onclick=start;
 const sndBtn=document.getElementById('snd');
 const syncSnd=()=>{sndBtn.setAttribute('aria-pressed',String(!SND.muted));sndBtn.setAttribute('aria-label',SND.muted?'音を出す':'音を消す');};
 syncSnd();
-sndBtn.onclick=e=>{e.stopPropagation();SND.setMuted(!SND.muted);if(!SND.muted&&!running&&overlay&&!overlay.hidden)SND.play('menu');syncSnd();};
+sndBtn.onclick=e=>{e.stopPropagation();SND.setMuted(!SND.muted);if(!SND.muted&&!running&&overlay&&!overlay.hidden)SND.play('menu');syncSnd();$muteNote.hidden=!SND.muted;};
+
+/* ---------- pause / settings menu (BGM・効果音の音量, リトライ) ---------- */
+const $=id=>document.getElementById(id);
+const menu=$('menu'),$muteNote=$('muteNote');
+function showConfirm(on){$('menuMain').hidden=on;$('menuFoot').hidden=on;$('menuConfirm').hidden=!on;$('confirmFoot').hidden=!on;$(on?'retryNo':'resume').focus();}
+function openMenu(){
+  if(!menu.hidden)return;
+  paused=running;P.target=null;
+  $('menuTitle').textContent=running?'ポーズ中':'設定';
+  $('resume').textContent=running?'つづける':'とじる';
+  $('retry').hidden=!running;
+  for(const k of ['bgm','se']){const v=Math.round(SND.vol(k)*100),id=k==='bgm'?'volBgm':'volSe';$(id).value=v;$(id+'Out').textContent=v;}
+  $muteNote.hidden=!SND.muted;
+  menu.hidden=false;showConfirm(false);
+}
+function closeMenu(){menu.hidden=true;paused=false;P.target=null;keys={};}
+$('menuBtn').onclick=e=>{e.stopPropagation();menu.hidden?openMenu():closeMenu();};
+$('resume').onclick=closeMenu;
+$('retry').onclick=()=>showConfirm(true);
+$('retryNo').onclick=()=>showConfirm(false);
+$('retryYes').onclick=()=>{closeMenu();start();};
+for(const [id,k] of [['volBgm','bgm'],['volSe','se']]){
+  const el=$(id);
+  el.oninput=()=>{$(id+'Out').textContent=el.value;SND.setVol(k,el.value/100);};
+  if(k==='se')el.onchange=()=>SND.fx('catch');   // preview the new effect volume
+}
 const firstGesture=e=>{if(e.target.closest&&e.target.closest('#snd'))return;
   removeEventListener('pointerdown',firstGesture,true);removeEventListener('keydown',firstGesture,true);
   if(SND.wake()&&!running)SND.play('menu');};
 addEventListener('pointerdown',firstGesture,true);addEventListener('keydown',firstGesture,true);
-function pointer(e){if(!running)return;const r=cv.getBoundingClientRect();P.target=e.clientX-r.left;}
+function pointer(e){if(!running||paused)return;const r=cv.getBoundingClientRect();P.target=e.clientX-r.left;}
 cv.addEventListener('pointerdown',e=>{pointer(e);cv.setPointerCapture?.(e.pointerId)});
 cv.addEventListener('pointermove',e=>{if(e.buttons||e.pointerType==='mouse')pointer(e)});
 cv.addEventListener('pointerup',()=>{P.target=null});
-addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){keys[e.key]=true;P.target=null;e.preventDefault();}});
+addEventListener('keydown',e=>{if(e.key==='Escape'){menu.hidden?openMenu():closeMenu();return;}if(paused)return;if(e.key==='ArrowLeft'||e.key==='ArrowRight'){keys[e.key]=true;P.target=null;e.preventDefault();}});
 addEventListener('keyup',e=>{keys[e.key]=false});
 addEventListener('resize',resize);
 resize();P.x=W/2;

@@ -33,14 +33,15 @@ GAME_SPEC.md              ゲーム仕様書
 ## index.html の中身（上から順）
 1. `<head>`：文字コード、viewport（`viewport-fit=cover`）、タイトル、**元のアーティファクト環境が自動で入れていた基本 CSS**（セーフエリアの余白など。見た目を保つためそのまま残している）、Google Fonts。
 2. `<body>` 内の `<style>`：ゲームの CSS（色は `:root` の CSS 変数）。
-3. HTML：`.hud`（スコア・ライフ・ベスト・音ボタン）、`#stage` > `canvas#cv` + `#overlay`（カード）。
+3. HTML：`.hud`（スコア・ライフ・ベスト・音ボタン・メニューボタン）、`#stage` > `canvas#cv` + `#overlay`（スタート／ゲームオーバーのカード） + `#menu`（ポーズ・設定メニュー）。
 4. `<script>` 1つ目：`SND` — Web Audio による BGM・効果音の合成（音声ファイルなし）。
 5. `<script>` 内の即時関数：ゲーム本体（`resize` / `spawn` / 描画関数 / `step(dt)` / `draw()` / `loop` / `start()` / `end()` / 入力処理）。
+   - ポーズ・設定メニュー（`#menu`）の処理は即時関数の後半（`openMenu` / `closeMenu`）。ポーズ中は `paused=true` で `step()` を呼ばない。
 - コードは 1 行に詰めた書き方になっている。編集するときは**周りの書き方に合わせる**。整形し直すなどの差分だけの変更はしない。
 - `drawGirl()` は未使用（GAME_SPEC.md の既知の不具合 #2）。消すかどうかはオーナーに確認する。
 
 ## 変えてはいけない値（保存データの互換性）
-- `localStorage` のキー `broc-best`（ベストスコア）と `broc-mute`（消音）。名前を変えると、プレイヤーの記録が消える。
+- `localStorage` のキー `broc-best`（ベストスコア）、`broc-mute`（消音）、`broc-vol-bgm`／`broc-vol-se`（音量）。名前を変えると、プレイヤーの記録や設定が消える。
 - 画像のパスは `assets/img/...` の**相対パス**のまま使う（`/assets/...` のような絶対パスは GitHub Pages のサブパス `/ClaudeGame003/` で壊れる）。
 
 ## 動作確認のしかた
