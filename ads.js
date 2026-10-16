@@ -39,6 +39,12 @@ const ids = () => idsOf(testMode ? 'test' : 'production');
 
 let admob = null, started = null, privacyReq = false, spaceFn = () => {};
 let bannerWanted = false, bannerState = 'none', bannerH = 0, bannerOffset = null;
+// The banner's space is reserved before the banner arrives, so the title / result card does not jump when it loads:
+// the height last reported on this phone (saved), or an estimate of the anchored adaptive banner on the first run.
+const H_KEY = 'broc-banner-h';
+let lastH = 0; try { lastH = +localStorage.getItem(H_KEY) || 0; } catch (e) {}
+const estH = () => Math.round(Math.max(50, Math.min(90, innerHeight * 0.15, innerWidth * 50 / 320)));
+const reserve = () => spaceFn((bannerH || lastH || estH()) + GAP * 2);
 let rewardReady = false, rewardLoading = false, retryTimer = 0, active = null;
 
 /* ---------- house ad (our own promo image) ---------- */
@@ -113,13 +119,14 @@ function placeBanner(offset) {
     // opposite sign, so a negative value is needed there to move it down. Verify on devices when the plugin is updated.
     margin: os === 'ios' ? -offset : offset };
   const go = () => admob.showBanner(opts).then(() => { bannerState = 'shown'; if (!bannerWanted) hideBanner(); })
-    .catch(() => { bannerState = 'none'; spaceFn(0); });
+    .catch(() => { bannerState = 'none'; });   // keeps the reserved space: the card stays where it is
   bannerOffset = offset;
   if (bannerState === 'none') go(); else admob.removeBanner().catch(() => {}).then(() => { bannerState = 'none'; go(); });
 }
 function showBanner(anchor) {
   bannerWanted = true;
   if (!admob || !ids().banner || !anchor) return;
+  reserve();
   const offset = bannerOffsetOf(anchor);
   if (bannerState === 'hidden' && offset === bannerOffset) {
     bannerState = 'shown';
@@ -216,8 +223,8 @@ async function init() {
       await plugin.initialize({ initializeForTesting: testMode });
     } catch (e) { return; }   // consent / SDK unavailable: no AdMob, house ad only
     admob = plugin;
-    on(EV.bannerSize, s => { bannerH = (s && s.height) || 0; if (bannerWanted && bannerState !== 'hidden') spaceFn(bannerH ? bannerH + GAP * 2 : 0); });
-    on(EV.bannerFail, () => { bannerState = 'none'; bannerH = 0; spaceFn(0); });
+    on(EV.bannerSize, s => { bannerH = (s && s.height) || 0; if (bannerH) { lastH = bannerH; try { localStorage.setItem(H_KEY, String(bannerH)); } catch (e) {} } if (bannerH && bannerWanted && bannerState !== 'hidden') spaceFn(bannerH + GAP * 2); });
+    on(EV.bannerFail, () => { bannerState = 'none'; });   // keeps the reserved space (no jump); it is freed when the screen changes
     on(EV.rLoaded, () => { rewardReady = true; rewardLoading = false; });
     on(EV.rLoadFail, () => { rewardReady = false; });
     on(EV.rReward, () => active && active.reward());

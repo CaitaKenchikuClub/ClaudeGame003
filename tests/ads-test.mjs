@@ -233,7 +233,7 @@ await rewardedCase('?ads=mock&dup=1', 'reward', true, 'mock rewarded: duplicated
 {
   const { ctx, page, errors } = await open('?ads=mock&fail=banner');
   await page.waitForTimeout(500);
-  check('mock: banner fails to load → nothing shown, no space reserved', !(await visible(page, '.ad-mock-banner')) && (await adSpace(page)) === '0px');
+  check('mock: banner fails to load → nothing shown (its reserved space stays, see 2b)', !(await visible(page, '.ad-mock-banner')));
   await page.tap('#start'); await page.waitForTimeout(500);
   check('mock fail=banner: game starts normally', (await g(page)).running && errors.length === 0, errors.join(' | '));
   await ctx.close();
@@ -271,6 +271,35 @@ await rewardedCase('?ads=mock&dup=1', 'reward', true, 'mock rewarded: duplicated
   const { ctx, page, errors } = await open('', { blockAds: true });
   await page.tap('#start'); await page.waitForTimeout(300); await dieToContinue(page);
   check('ads.js unavailable: game over goes straight to the result screen', !(await visible(page, '#cont')) && (await visible(page, '#overlay')) && errors.length === 0, errors.join(' | '));
+  await ctx.close();
+}
+
+/* ===== 2b. the title / result card does not jump when the banner arrives (its space is reserved first) ===== */
+{
+  const { ctx, page, errors } = await open('?ads=mock');   // first run: estimated space, then the banner height is saved
+  // watch the card's top every frame from page start (after the fonts) until the banner is up
+  await ctx.addInitScript(() => {
+    window.__tops = [];
+    const f = () => { const c = document.querySelector('#overlay .card'); if (c && c.getClientRects().length && !document.getElementById('overlay').hidden) window.__tops.push(Math.round(c.getBoundingClientRect().top)); requestAnimationFrame(f); };
+    document.fonts.ready.then(() => requestAnimationFrame(f));
+  });
+  await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(1200);
+  let tops = await page.evaluate(() => window.__tops), set = [...new Set(tops)];
+  check('title: the card stays put while the banner loads (saved banner height)', tops.length > 10 && set.length === 1 && (await visible(page, '.ad-mock-banner')), set.join(','));
+  await page.tap('#start'); await page.waitForTimeout(300);
+  await page.evaluate(() => { window.__score(5); }); await dieToContinue(page);
+  await page.evaluate(() => { window.__tops = []; });
+  await page.tap('#contEnd'); await page.waitForTimeout(1200);
+  tops = await page.evaluate(() => window.__tops); set = [...new Set(tops)];
+  check('result: the card stays put while the banner comes back', tops.length > 10 && set.length === 1 && (await visible(page, '.ad-mock-banner')), set.join(','));
+  check('no page errors (reserved banner space)', errors.length === 0, errors.join(' | '));
+  await ctx.close();
+}
+{
+  const { ctx, page } = await open('?ads=mock&fail=banner');
+  const before = await adSpace(page);
+  await page.waitForTimeout(600);
+  check('banner fails to load: the reserved space is kept (no jump), and no banner is shown', before !== '0px' && (await adSpace(page)) === before && !(await visible(page, '.ad-mock-banner')), before);
   await ctx.close();
 }
 
