@@ -81,6 +81,10 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .vol{display:grid;grid-template-columns:3.6em 1fr 2.6em;align-items:center;gap:8px;font-weight:800;font-size:14px}
 .vol input{width:100%;height:32px;margin:0;accent-color:var(--leaf)}
 .vol output{text-align:right;font-variant-numeric:tabular-nums}
+.menu .x{position:absolute;top:12px;right:12px;font-size:0;padding:0;width:38px;height:38px;border-width:2px;box-shadow:0 2px 0 var(--ink);
+  display:grid;place-items:center;background:var(--card);color:var(--ink)}   /* × in the menu: same as つづける / とじる */
+.menu .x svg{width:18px;height:18px}
+.menu .x:active{transform:translateY(2px);box-shadow:0 0 0 var(--ink)}
 .menu .note{font-size:12px;opacity:.7}
 .menu .foot{gap:12px}
 .menu .foot button{min-width:180px}
@@ -98,7 +102,13 @@ button.sub{background:var(--card);color:var(--ink)}
 .cont .foot button{min-width:220px}
 #shareBtn{font-size:16px;padding:8px 22px;box-shadow:0 3px 0 var(--ink)}
 .cont button.sub{font-size:15px}
+/* app only: club logo shown silently before the title (fades in from the white launch screen; tap to skip) */
+#intro{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:#fff;transition:background-color .6s,opacity .5s}
+#intro img{width:min(88vw,560px);height:auto;opacity:0;transition:opacity .8s}
+#intro.show{background:#eef8d0}#intro.show img{opacity:1}#intro.out{opacity:0;pointer-events:none}
 </style>
+<div id="intro" hidden><img data-src="assets/img/kenchikubu-logo.webp" alt="けんちくぶ！"></div>
+<script>if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()){const e=document.getElementById('intro');e.hidden=false;e.firstChild.src=e.firstChild.dataset.src;}   // the web version never downloads the logo</script>
 
 <div class="wrap">
   <div class="hud">
@@ -158,6 +168,7 @@ button.sub{background:var(--card);color:var(--ink)}
       <div class="card" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
         <div class="txt" id="menuMain">
           <h2 id="menuTitle">ポーズ中</h2>
+          <button class="x" id="menuX" type="button" aria-label="つづける"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           <label class="vol"><span>BGM</span><input type="range" id="volBgm" min="0" max="100" step="5"><output id="volBgmOut"></output></label>
           <label class="vol"><span>効果音</span><input type="range" id="volSe" min="0" max="100" step="5"><output id="volSeOut"></output></label>
           <p class="note" id="muteNote" hidden>いまはミュート中です（右上のスピーカーで解除）</p>
@@ -191,12 +202,13 @@ button.sub{background:var(--card);color:var(--ink)}
           </div>
         </div>
         <div class="txt" id="menuConfirm" hidden>
-          <h2>リトライしますか？</h2>
-          <p>今回のスコアは記録されず、最初からやり直しになります。</p>
+          <h2 id="confirmTitle">リトライしますか？</h2>
+          <p id="confirmMsg">今回のスコアは記録されず、最初からやり直しになります。</p>
         </div>
         <div class="foot" id="menuFoot">
           <button id="resume" type="button">つづける</button>
           <button id="retry" class="sub" type="button">リトライ</button>
+          <button id="quit" class="sub" type="button" hidden>ゲームをやめる</button>
         </div>
         <div class="foot" id="licFoot" hidden>
           <button id="licBack" class="sub" type="button">もどる</button>
@@ -738,14 +750,15 @@ sndBtn.onclick=e=>{e.stopPropagation();SND.setMuted(!SND.muted);if(!SND.muted&&!
 /* ---------- pause / settings menu (BGM・効果音の音量, リトライ) ---------- */
 const $=id=>document.getElementById(id);
 const menu=$('menu'),$muteNote=$('muteNote');
-function showConfirm(on){$('menuLicense').hidden=$('licFoot').hidden=true;$('menuMain').hidden=on;$('menuFoot').hidden=on;$('menuConfirm').hidden=!on;$('confirmFoot').hidden=!on;$(on?'retryNo':'resume').focus();}
+let quitAsk=false;   // the confirm card asks about リトライ (false) or ゲームをやめる (true, app only)
+function showConfirm(on,q){if(on){quitAsk=!!q;$('confirmTitle').textContent=q?'ゲームをやめますか？':'リトライしますか？';$('confirmMsg').textContent=q?'今回のスコアは記録されず、アプリを終了します。':'今回のスコアは記録されず、最初からやり直しになります。';$('retryYes').textContent=q?'やめる':'リトライする';}$('menuLicense').hidden=$('licFoot').hidden=true;$('menuMain').hidden=on;$('menuFoot').hidden=on;$('menuConfirm').hidden=!on;$('confirmFoot').hidden=!on;$(on?'retryNo':'resume').focus();}
 function openMenu(){
   if(!menu.hidden||contOpen||cd>0||shareOpen)return;
   $('privBtn').hidden=!ADS.privacyOptionsRequired();
   paused=running;P.target=null;
   $('menuTitle').textContent=running?'ポーズ中':'設定';
   $('resume').textContent=running?'つづける':'とじる';
-  $('retry').hidden=!running;
+  $('retry').hidden=!running;$('menuX').setAttribute('aria-label',running?'つづける':'とじる');$('quit').hidden=!running||!(NAT&&NAT.App);   // quitting the app is for the Android app only
   for(const k of ['bgm','se']){const v=Math.round(SND.vol(k)*100),id=k==='bgm'?'volBgm':'volSe';$(id).value=v;$(id+'Out').textContent=v;}
   $muteNote.hidden=!SND.muted;
   menu.hidden=false;showConfirm(false);ADS.hideBanner();   // no banner next to the settings controls
@@ -753,16 +766,17 @@ function openMenu(){
 function closeMenu(){menu.hidden=true;paused=false;P.target=null;keys={};showBanner();}
 $('menuBtn').onclick=e=>{e.stopPropagation();menu.hidden?openMenu():closeMenu();};
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&running)openMenu();});   // auto-pause when the app is switched or the screen turns off; stays paused until つづける
-$('resume').onclick=closeMenu;
+$('resume').onclick=$('menuX').onclick=closeMenu;
 $('retry').onclick=()=>showConfirm(true);
 $('retryNo').onclick=()=>showConfirm(false);
+$('quit').onclick=()=>showConfirm(true,true);
 $('licBtn').onclick=()=>{$('menuMain').hidden=$('menuFoot').hidden=true;$('menuLicense').hidden=$('licFoot').hidden=false;$('licBack').focus();};
 $('licBack').onclick=()=>showConfirm(false);
 for(const d of document.querySelectorAll('.lic details'))d.addEventListener('toggle',()=>{   // load the bundled OFL.txt on first open
   const pre=d.querySelector('pre');if(!d.open||pre.textContent)return;
   fetch(pre.dataset.src).then(r=>r.ok?r.text():Promise.reject()).then(t=>{pre.textContent=t;}).catch(()=>{pre.textContent='全文はアプリ内のファイル '+pre.dataset.src+' に収録しています。';});
 });
-$('retryYes').onclick=()=>{closeMenu();start();};
+$('retryYes').onclick=()=>{if(quitAsk){NAT.App.exitApp();return;}closeMenu();start();};
 $('privBtn').onclick=()=>ADS.showPrivacyOptions();
 
 /* ---------- ads: continue with a rewarded ad (max once per play), banner on title / result screens ---------- */
@@ -788,7 +802,7 @@ $('shareBtn').onclick=()=>{
 };
 // the banner is only shown when the title / result card still fits below it (otherwise the game screen wins)
 const roomFor=px=>stage.clientHeight-overlay.querySelector('.card').offsetHeight-16>=px;
-const showBanner=()=>{if(!running&&!contOpen&&!shareOpen&&!overlay.hidden&&menu.hidden&&roomFor(74))ADS.showBanner(stage);};   // 74 = 12 + 50 (smallest banner) + 12
+const showBanner=()=>{if($('intro').hidden&&!running&&!contOpen&&!shareOpen&&!overlay.hidden&&menu.hidden&&roomFor(74))ADS.showBanner(stage);};   // 74 = 12 + 50 (smallest banner) + 12
 ADS.onBannerSpace(px=>{document.documentElement.style.setProperty('--ad-space',px+'px');if(px&&!roomFor(px))ADS.hideBanner();});
 ADS.init().then(showBanner);
 addEventListener('resize',showBanner);
@@ -797,7 +811,7 @@ for(const [id,k] of [['volBgm','bgm'],['volSe','se']]){
   el.oninput=()=>{$(id+'Out').textContent=el.value;SND.setVol(k,el.value/100);};
   if(k==='se')el.onchange=()=>SND.fx('catch');   // preview the new effect volume
 }
-const firstGesture=e=>{if(e.target.closest&&e.target.closest('#snd'))return;
+const firstGesture=e=>{if(e.target.closest&&e.target.closest('#snd,#intro'))return;   // the logo screen stays silent
   removeEventListener('pointerdown',firstGesture,true);removeEventListener('keydown',firstGesture,true);
   if(SND.wake()&&!running)SND.play('menu');};
 addEventListener('pointerdown',firstGesture,true);addEventListener('keydown',firstGesture,true);
@@ -809,8 +823,17 @@ addEventListener('keydown',e=>{if(e.key==='Escape'){menu.hidden?openMenu():close
 addEventListener('keyup',e=>{keys[e.key]=false});
 /* ---------- Android back button (Capacitor app only; the web version never registers it) ---------- */
 const NAT=window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()?Capacitor.Plugins:null;
+/* club logo before the title (app only): silent, about 3 s, tap or back to skip */
+const intro=$('intro');let introT=0;
+function introEnd(){if(intro.hidden||intro.classList.contains('out'))return;clearTimeout(introT);intro.classList.add('out');setTimeout(()=>{intro.hidden=true;showBanner();},500);}
+if(!intro.hidden){
+  const go=()=>{intro.classList.add('show');introT=setTimeout(introEnd,2600);},img=intro.querySelector('img');
+  img.decode?img.decode().then(go,go):go();
+  intro.addEventListener('click',introEnd);   // click, not pointerdown, so the tap cannot fall through to はじめる
+}
 let backT=0;   // time of the last back press on the title / result screen (press twice within 2 s to quit)
 function onBack(){
+  if(!intro.hidden){introEnd();return;}
   if(contBusy)return;   // an ad is on screen
   if(shareOpen){window.Share.close();return;}
   if(!menu.hidden){$('menuMain').hidden?showConfirm(false):closeMenu();return;}   // retry confirm / licenses → menu → game

@@ -130,7 +130,7 @@ async function open(result, opts = {}) {
   const r = { score: fmt(result && result.score) };
   const el = document.createElement('div'); el.className = 'share-sheet'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', '結果をシェア');
   el.innerHTML = '<div class="share-box"><h2>結果をシェア</h2><div class="share-preview"><span class="share-wait">画像を作っています…</span></div>' +
-    '<div class="share-btns"><button type="button" data-a="image" hidden>画像付きでシェア</button><button type="button" data-a="text" class="sub">テキストだけシェア</button>' +
+    '<div class="share-btns"><button type="button" data-a="image" hidden>画像付きでシェア</button><button type="button" data-a="text">テキストだけシェア</button>' +
     '<a class="share-save" data-a="save" hidden>画像を保存</a><button type="button" data-a="close" class="sub">とじる</button></div>' +
     '<p class="share-note" hidden></p></div>';
   document.body.appendChild(el);
@@ -171,8 +171,9 @@ css.textContent = `
 .share-btns{display:grid;gap:10px;width:100%;justify-items:stretch}
 .share-btns [hidden]{display:none!important}
 .share-btns button,.share-save{font-size:17px;padding:10px 16px}
-.share-btns button.sub{background:#fffdf7;color:#2a2f22}
-.share-save{display:block;text-align:center;text-decoration:none;font-family:"Dela Gothic One",sans-serif;color:#fffdf7;background:#4f8a2c;
+.share-btns button{background:#d3ebb0;color:#2a2f22}   /* share actions: light green, dark text (two dark-green buttons felt heavy) */
+.share-btns button.sub{background:#fffdf7}
+.share-save{display:block;text-align:center;text-decoration:none;font-family:"Dela Gothic One",sans-serif;color:#2a2f22;background:#d3ebb0;
   border:3px solid #2a2f22;border-radius:999px;box-shadow:0 4px 0 #2a2f22}
 .share-note{margin:0;font:800 12px "M PLUS Rounded 1c",sans-serif;color:#b8423c}
 `;

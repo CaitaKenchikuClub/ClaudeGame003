@@ -49,7 +49,7 @@ page.on('response', r => { if (r.status() >= 400 && !r.url().endsWith('favicon.i
 await page.goto(BASE + 'index.html', { waitUntil: 'load' });
 await page.waitForTimeout(800);
 check('title', (await page.title()) === 'ブロッ校長！');
-const imgs = await page.evaluate(() => [...document.images].map(i => i.complete && i.naturalWidth > 0));
+const imgs = await page.evaluate(() => [...document.images].filter(i => !i.closest('#intro')).map(i => i.complete && i.naturalWidth > 0));
 await page.evaluate(() => document.fonts.ready);
 const loadedFonts = await page.evaluate(() => [...new Set([...document.fonts].filter(f => f.status === 'loaded').map(f => f.family.replace(/["']/g, '') + ' ' + f.weight))].sort().join(', '));
 check('bundled fonts loaded (Dela Gothic One 400, M PLUS Rounded 1c 500/800)', loadedFonts === 'Dela Gothic One 400, M PLUS Rounded 1c 500, M PLUS Rounded 1c 800', loadedFonts);
@@ -68,6 +68,7 @@ check('PWA: start_url / scope / id resolve to the sub-directory', parsed.startUr
 check('PWA: standalone + portrait, icons resolve under the sub-directory', manJson.display === 'standalone' && manJson.orientation === 'portrait' && (parsed.icons || []).length === 3 && parsed.icons.every(i => i.url.startsWith(BASE + 'assets/icons/')), (parsed.icons || []).map(i => i.url).join(' '));
 check('in-game BGM file is downloaded (assets/audio/bgm-game.mp3)', bgm.includes(200), bgm.join(','));
 check('4 character images loaded', imgs.length === 4 && imgs.every(Boolean));
+check('web: the app-only club logo is not downloaded', await page.evaluate(() => !document.querySelector('#intro img').getAttribute('src') && !performance.getEntriesByType('resource').some(e => e.name.includes('kenchikubu-logo'))));
 check('start overlay visible', await page.evaluate(() => !document.getElementById('overlay').hidden));
 
 await page.tap('#start');
@@ -145,6 +146,7 @@ check('heart: missing it costs nothing', (await T('lives')) === 3);
 await page3.tap('#menuBtn'); await page3.waitForTimeout(100);
 const t1 = await T('t'); await page3.waitForTimeout(600);
 check('menu: opens and pauses the game', (await shown('menu')) && t1 === await T('t'));
+check('menu: no ゲームをやめる on the web (app only)', !(await shown('quit')));
 await page3.evaluate(() => { for (const [id, v] of [['volBgm', 40], ['volSe', 25]]) { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('input')); } });
 check('menu: BGM / SE volumes saved separately', JSON.stringify(await page3.evaluate(() => [localStorage.getItem('broc-vol-bgm'), localStorage.getItem('broc-vol-se')])) === '["0.4","0.25"]');
 await page3.tap('#retry');
@@ -154,6 +156,12 @@ await page3.tap('#retryNo');
 check('menu: cancelling keeps the game', (await shown('menuMain')) && (await T('score')) === 37);
 await page3.tap('#resume'); await page3.waitForTimeout(300);
 check('menu: resume continues the game', !(await shown('menu')) && (await T('t')) > t1);
+await page3.tap('#menuBtn'); await page3.waitForTimeout(100);
+const xr = await page3.evaluate(() => { const c = document.querySelector('#menu .card').getBoundingClientRect(), x = document.getElementById('menuX').getBoundingClientRect(), rg = document.createRange(); rg.selectNodeContents(document.getElementById('menuTitle')); const h = rg.getBoundingClientRect(); return { top: x.top - c.top, right: c.right - x.right, w: x.width, clear: h.right <= x.left || h.bottom <= x.top }; });
+// title text (not the full-width h2 box) must not run under the ×
+check('menu: × sits in the top-right corner of the pause menu', (await shown('menuX')) && xr.top < 20 && xr.right < 20 && xr.w >= 36 && xr.clear, JSON.stringify(xr));
+const t2 = await T('t'); await page3.tap('#menuX'); await page3.waitForTimeout(300);
+check('menu: × continues the game like つづける', !(await shown('menu')) && (await T('t')) > t2);
 await page3.tap('#menuBtn'); await page3.tap('#retry'); await page3.tap('#retryYes'); await page3.waitForTimeout(300);
 check('menu: confirmed retry restarts from zero', !(await shown('menu')) && (await T('score')) === 0 && (await T('t')) < 1);
 // Auto-pause: simulate the page becoming hidden (app switch / screen off)

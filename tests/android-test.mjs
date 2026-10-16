@@ -1,5 +1,5 @@
 // Android app (Capacitor) test: the files bundled into the app (www/), offline start from them,
-// and the Android back button with stubbed Capacitor plugins (App / Toast).
+// the club logo screen and the Android back button with stubbed Capacitor plugins (App / Toast).
 // Usage: node tests/android-test.mjs   (the real app still needs to be checked on a phone)
 import http from 'node:http';
 import fs from 'node:fs';
@@ -42,10 +42,11 @@ await new Promise(r => server.listen(0, r));
 const BASE = `http://localhost:${server.address().port}/`;
 const browser = await chromium.launch();
 
-const HOOK = "window.__g=()=>({running,paused,cd,contOpen,contBusy});window.__die=()=>{lives=1;items.push({type:'broc',x:5,y:GROUND-1,vx:0,vy:100,rot:0,vr:0,size:30});};";
+const HOOK = "window.__g=()=>({running,paused,cd,contOpen,contBusy});window.__score=v=>{score=v;};window.__die=()=>{lives=1;items.push({type:'broc',x:5,y:GROUND-1,vx:0,vy:100,rot:0,vr:0,size:30});};";
 // stub of what the Capacitor runtime injects on Android (window.Capacitor + Plugins.App / Plugins.Toast)
 const NATIVE = () => {
-  window.__toasts = []; window.__exits = 0;
+  window.__toasts = []; window.__exits = 0; window.__audio = 0;
+  const AC = window.AudioContext; window.AudioContext = function (...a) { window.__audio++; return new AC(...a); };   // counts when sound starts
   window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: {
     App: { addListener(ev, fn) { if (ev === 'backButton') window.__back = fn; return Promise.resolve({ remove() {} }); }, exitApp() { window.__exits++; return Promise.resolve(); } },
     Toast: { show(o) { window.__toasts.push(o.text); return Promise.resolve(); } },
@@ -81,14 +82,46 @@ const exits = p => p.evaluate(() => window.__exits);
   check('www/: title → play → result works', (await page.textContent('#txt')).includes('ごちそうさま') && errors.length === 0, errors.join(' | '));
   check('www/: every file the game asks for is bundled', missing.length === 0, missing.join(','));
   check('www/: no request leaves the app (works offline)', external.length === 0, external.join(','));
+  check('web: no club logo screen (app only)', await page.evaluate(() => document.getElementById('intro').hidden));
   check('web: no back-button listener without Capacitor', await page.evaluate(() => window.__back === undefined));
   check('web: app-only license entries stay hidden', await page.evaluate(() => document.getElementById('licApp').hidden && document.getElementById('licApp2').hidden));
   await ctx.close();
 }
 
-/* ===== 3. Android back button ===== */
+/* ===== 3. club logo before the title (app only) ===== */
+const introOn = p => visible(p, '#intro');
+const audio = p => p.evaluate(() => window.__audio);
 {
   const { ctx, page, errors } = await open(NATIVE);
+  await page.waitForTimeout(600);   // background fades from white
+  const r = await page.evaluate(() => { const i = document.querySelector('#intro img').getBoundingClientRect(); return { w: i.width, vw: innerWidth, top: i.top, bottom: i.bottom, vh: innerHeight, bg: getComputedStyle(document.getElementById('intro')).backgroundColor }; });
+  check('app: club logo shown first, centred, on the light yellow-green background', (await introOn(page)) && r.w > 0 && r.w <= r.vw && r.top > 0 && r.bottom < r.vh && r.bg === 'rgb(238, 248, 208)', `${Math.round(r.w)}px / ${r.vw}px`);
+  check('logo screen is silent', (await audio(page)) === 0);
+  await page.tap('#intro'); await page.waitForTimeout(700);
+  const s = await g(page);
+  check('tap skips the logo to the title; the tap does not start the game or the sound', !(await introOn(page)) && (await visible(page, '#start')) && !s.running && (await audio(page)) === 0);
+  await page.tap('#overlay .card h1'); await page.waitForTimeout(200);
+  check('after the logo, the first tap on the title starts the sound as before', (await audio(page)) === 1);
+  check('no page errors (logo)', errors.length === 0, errors.join(' | '));
+  await ctx.close();
+}
+{
+  const { ctx, page } = await open(NATIVE);
+  await page.waitForTimeout(3300);
+  check('logo ends by itself after about 3 s, still silent', !(await introOn(page)) && (await visible(page, '#start')) && (await audio(page)) === 0);
+  await ctx.close();
+}
+{
+  const { ctx, page } = await open(NATIVE);
+  await back(page); await page.waitForTimeout(700);
+  check('back on the logo skips it (no exit toast)', !(await introOn(page)) && (await toasts(page)) === 0 && (await exits(page)) === 0);
+  await ctx.close();
+}
+
+/* ===== 4. Android back button ===== */
+{
+  const { ctx, page, errors } = await open(NATIVE);
+  await page.tap('#intro'); await page.waitForTimeout(700);
   check('app: back-button listener registered', await page.evaluate(() => typeof window.__back === 'function'));
   await back(page);
   check('title: 1st back shows the toast, app stays open', (await toasts(page)) === 1 && (await exits(page)) === 0 && (await page.evaluate(() => window.__toasts[0])) === 'もう一度押すとアプリを終了します');
@@ -99,6 +132,10 @@ const exits = p => p.evaluate(() => window.__exits);
   check('title: presses more than 2 s apart only show the toast again', (await toasts(page)) === 2 && (await exits(page)) === 0);
   await page.waitForTimeout(2100);
 
+  await page.tap('#menuBtn'); await page.waitForTimeout(100);
+  check('title settings menu: × shown, no ゲームをやめる', (await visible(page, '#menu')) && (await visible(page, '#menuX')) && !(await visible(page, '#quit')));
+  await page.tap('#menuX'); await page.waitForTimeout(100);
+  check('title settings menu: × closes it like とじる', !(await visible(page, '#menu')) && (await visible(page, '#start')) && !(await g(page)).running);
   await page.tap('#menuBtn'); await page.waitForTimeout(100); await back(page);
   check('title settings menu: back closes it', !(await visible(page, '#menu')) && (await toasts(page)) === 2);
 
@@ -111,6 +148,19 @@ const exits = p => p.evaluate(() => window.__exits);
   check('licenses: Capacitor / Apache notices listed in the app', (await visible(page, '#licApp')) && (await visible(page, '#licApp2')));
   await back(page);
   check('licenses: back returns to the menu', (await visible(page, '#menuMain')) && !(await visible(page, '#menuLicense')));
+  check('pause menu: ゲームをやめる shown in the app', await visible(page, '#quit'));
+  await page.evaluate(() => window.__score(999)); await page.tap('#quit'); await page.waitForTimeout(100);
+  check('quit: asks for confirmation (score not saved)', (await visible(page, '#menuConfirm')) && (await page.textContent('#confirmTitle')) === 'ゲームをやめますか？' && (await page.textContent('#confirmMsg')).includes('記録されず') && (await page.textContent('#retryYes')) === 'やめる' && (await exits(page)) === 0);
+  await page.tap('#retryNo'); await page.waitForTimeout(100);
+  check('quit: このまま続ける returns to the menu, app stays open', (await visible(page, '#menuMain')) && (await exits(page)) === 0);
+  await page.tap('#quit'); await page.waitForTimeout(100); await back(page);
+  check('quit confirmation: back returns to the menu', (await visible(page, '#menuMain')) && (await exits(page)) === 0);
+  await page.tap('#quit'); await page.tap('#retryYes'); await page.waitForTimeout(100);
+  check('quit: やめる closes the app without saving the score', (await exits(page)) === 1 && (await page.evaluate(() => localStorage.getItem('broc-best'))) !== '999');
+  await back(page); await page.evaluate(() => { window.__exits = 0; window.__score(0); });   // the stub does not really close: back to the menu for the next checks
+  await page.tap('#retry'); await page.waitForTimeout(100);
+  check('retry confirmation keeps its own wording after quit', (await page.textContent('#confirmTitle')) === 'リトライしますか？' && (await page.textContent('#retryYes')) === 'リトライする');
+  await back(page); await page.waitForTimeout(100);
   await back(page); await page.waitForTimeout(100);
   const s = await g(page);
   check('pause menu: back closes it and play resumes', !(await visible(page, '#menu')) && s.running && !s.paused);
