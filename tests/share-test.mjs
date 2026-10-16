@@ -25,6 +25,8 @@ const server = http.createServer((req, res) => {
 });
 await new Promise(r => server.listen(0, r));
 const BASE = `http://localhost:${server.address().port}${PREFIX}`;
+// expected share text (share-config.js textTemplate)
+const T = n => `『ブロッ校長！』で遊んだよ！\nSCORE: ${n}\n#ブロッ校長 byけんちくぶ！`;
 const results = [];
 const check = (name, ok, info = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${info ? '  (' + info + ')' : ''}`); };
 const browser = await chromium.launch();
@@ -70,7 +72,7 @@ async function openSheet(p) { await p.tap('#shareBtn'); await p.waitForFunction(
   const save = await page.evaluate(async () => { const a = document.querySelector('.share-save'); const b = await (await fetch(a.href)).blob(); const head = new Uint8Array(await b.slice(0, 8).arrayBuffer()); return { hidden: a.hidden, name: a.download, type: b.type, size: b.size, sig: [...head].join(',') }; });
   check('"画像を保存" downloads a PNG named burokocho-87.png', !save.hidden && save.name === 'burokocho-87.png' && save.type === 'image/png' && save.sig === '137,80,78,71,13,10,26,10' && save.size > 50000, JSON.stringify(save));
   const text = await page.evaluate(() => Share.text({ score: 87 }));
-  check('share text: score + hashtag, no URL', text === 'ブロッ校長！で 87点！ #ブロッ校長' && !/https?:/.test(text), text);
+  check('share text: 3 lines, score as a bare number, hashtag, no URL', text === T(87) && text.split('\n').length === 3 && !/点|ポイント|https?:/.test(text), JSON.stringify(text));
   await page.keyboard.press('Escape'); await page.waitForTimeout(300);
   check('Escape closes the sheet without opening the settings menu', !(await visible(page, '.share-sheet')) && !(await visible(page, '#menu')));
   check('banner comes back after closing', await visible(page, '.ad-mock-banner'));
@@ -101,8 +103,8 @@ async function openSheet(p) { await p.tap('#shareBtn'); await p.waitForFunction(
   await page.tap('[data-a=image]'); await page.waitForTimeout(300);
   await page.tap('[data-a=text]'); await page.waitForTimeout(300);
   const s = await page.evaluate(() => window.__shared);
-  check('image share passes the PNG and the text', s[0] && s[0].files[0].type === 'image/png' && s[0].files[0].name === 'burokocho-42.png' && s[0].files[0].size > 50000 && s[0].text === 'ブロッ校長！で 42点！ #ブロッ校長', JSON.stringify(s[0]));
-  check('text-only share passes just the text', s[1] && s[1].files.length === 0 && s[1].text === 'ブロッ校長！で 42点！ #ブロッ校長');
+  check('image share passes the PNG and the text', s[0] && s[0].files[0].type === 'image/png' && s[0].files[0].name === 'burokocho-42.png' && s[0].files[0].size > 50000 && s[0].text === T(42), JSON.stringify(s[0]));
+  check('text-only share passes just the text', s[1] && s[1].files.length === 0 && s[1].text === T(42));
   check('Web Share: no JS errors', errors.length === 0, errors.join(' | '));
   await ctx.close();
 }
@@ -123,7 +125,7 @@ async function openSheet(p) { await p.tap('#shareBtn'); await p.waitForFunction(
   check('no Web Share: image share button hidden, save still available', !(await visible(page, '[data-a=image]')) && (await visible(page, '.share-save')));
   await page.tap('[data-a=text]'); await page.waitForTimeout(200);
   const u = await page.evaluate(() => window.__opened[0] || '');
-  check('no Web Share: text share opens the X post page with the text', u.startsWith('https://x.com/intent/post?text=') && decodeURIComponent(u.split('text=')[1]) === 'ブロッ校長！で 7点！ #ブロッ校長', u);
+  check('no Web Share: text share opens the X post page with the text', u.startsWith('https://x.com/intent/post?text=') && decodeURIComponent(u.split('text=')[1]) === T(7), u);
   check('no Web Share: no JS errors', errors.length === 0, errors.join(' | '));
   await ctx.close();
 }
@@ -143,7 +145,7 @@ async function openSheet(p) { await p.tap('#shareBtn'); await p.waitForFunction(
   const calls = await page.evaluate(() => window.__cap);
   check('app: PNG written to the cache dir, then passed to the share sheet with the text',
     calls[0] && calls[0].fn === 'writeFile' && calls[0].directory === 'CACHE' && calls[0].head === 'PNG' && calls[0].path === 'share/burokocho-321.png' &&
-    calls[1] && calls[1].fn === 'share' && calls[1].files[0] === 'file:///cache/share/burokocho-321.png' && calls[1].text === 'ブロッ校長！で 321点！ #ブロッ校長', JSON.stringify(calls));
+    calls[1] && calls[1].fn === 'share' && calls[1].files[0] === 'file:///cache/share/burokocho-321.png' && calls[1].text === T(321), JSON.stringify(calls));
   check('app path: no JS errors', errors.length === 0, errors.join(' | '));
   await ctx.close();
 }
