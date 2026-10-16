@@ -42,11 +42,11 @@ archive/original-artifact.html  移行前の元ファイル（参照専用・編
 tests/smoke-test.mjs      ブラウザでの自動動作確認（Playwright）
 docs/                     移行メモ・GitHub Pages の公開手順
 .nojekyll                 GitHub Pages の Jekyll 処理を止めるための空ファイル
-package.json              Capacitor（8.5.3）とプラグイン（App・Toast・Share・Filesystem）の版を固定。npm スクリプト（build／sync／open／icons）
+package.json              Capacitor（8.5.3）とプラグイン（App・Toast・Share・Filesystem・AdMob 8.2.1）の版を固定。npm スクリプト（build／sync／open／icons）
 capacitor.config.json     アプリ名・Application ID（com.caitakenchikuclub.burokocho）・webDir（www）・SystemBars
 scripts/build-web.mjs     アプリに入れるファイルだけを www/ に集める（www/ は git の管理対象外）。ゲームのファイルを足したら WEB_FILES にも足す
 scripts/make-app-icons.mjs アプリのアイコン・スプラッシュを作る（npm run icons）
-android/                  Android Studio で開く Android プロジェクト（Capacitor が生成。縦画面固定・白い起動画面に角丸アイコン）
+android/                  Android Studio で開く Android プロジェクト（Capacitor が生成。縦画面固定・白い起動画面に角丸アイコン）。AdMob のアプリ ID は app/build.gradle（debug＝テスト用、release＝本番）。BuildInfoPlugin.java は debug／release を ads.js に返す
 assets/licenses/          アプリ版で使うライブラリのライセンス全文（Capacitor の MIT、Apache 2.0）
 tests/android-test.mjs    アプリ版の自動テスト（www/ の中身・オフライン起動・戻るボタン）
 docs/ANDROID.md           Android アプリ版の仕組み・オーナーの Mac での手順・確認状況
@@ -72,6 +72,8 @@ GAME_SPEC.md              ゲーム仕様書
 - **プレイ中にバナーを出さない**（操作領域が画面全体のため、誤タップの危険）。バナーはタイトル・結果画面だけ。インタースティシャル広告は入れない（オーナー方針）。
 - ライフ回復は**報酬を獲得したときだけ**。報酬の判定は ads.js の `settle` で1回だけ行う。ライフ回復は1プレイ1回。途中で閉じたときは回復せず、プレイヤーが毎回ボタンで選んだときだけ再視聴させる（自動再生しない）。
 - 広告ユニット ID・ハウス広告の画像とリンク先は `ads-config.js` だけで変える。テスト用 ID と本番 ID を混ぜない。
+- **テスト広告と本番広告は自動で切り替わる**：debug ビルド（▶・installDebug）は必ず Google のテスト広告、release ビルドだけが本番 ID。判定できないときはテスト広告。この安全策を弱めない。開発中に本番の広告を表示・クリックしない。
+- 同意管理（UMP）：同意の確認 → 必要なら同意画面 → 広告を出してよいときだけ広告 SDK を起動、の順番を守る。対象年齢は13歳以上（子ども向け設定は使わない）。
 - 広告まわりを変えたら `node tests/ads-test.mjs` も実行する。Web 版では `?ads=mock` で模擬 AdMob を試せる。
 
 ## 結果共有のルール（詳細は docs/SHARE.md）
@@ -116,9 +118,8 @@ node tests/android-test.mjs
 - Web 版とアプリ版は同じファイルを使う。ゲームを直したら `npm run sync` でアプリに反映する（`www/` を直接編集しない）。
 - アプリだけの処理は `window.Capacitor` があるときだけ動かし、Web 版の動きを変えない（例：けんちくぶ！のロゴ画面 `#intro`、戻るボタン `onBack`、ライセンス情報の `#licApp`）。
 - Application ID は Google Play 公開後に変えられない。
-- このクラウド環境は Android SDK をダウンロードできないため、ビルドと実機確認はオーナーの Mac で行う。
+- ビルドと実機確認はオーナーの Mac で行う。Gradle 8.14.3 は Java 25 では動かないので、Mac の Java 21（`~/Library/Java/JavaVirtualMachines/jbr-21.0.11`）を `JAVA_HOME` に指定して `./gradlew installDebug` する。
 
 ## 今後の予定（優先順の目安）
-1. Android アプリの実機確認（オーナーの Mac で Android Studio を使う。`docs/ANDROID.md` の 5章）
-2. AdMob（テスト ID）の組み込み（`docs/ADS.md` の「フェーズ2」）
-3. 広告の本番 ID 設定・ストア公開の準備（プライバシーポリシー、app-ads.txt など）
+1. 本番版（release）の署名とビルド、Google Play への登録
+2. ストア公開の準備（プライバシーポリシー、app-ads.txt、データセーフティ、AdMob の GDPR メッセージ。`docs/ADS.md` の 6-4）

@@ -1,15 +1,24 @@
 /*
  * 広告の設定（ここだけ変更すればよい）
  *
- * - useTestAds: 開発中は true（Google 公式のテスト広告）。ストア公開用のビルドでだけ false にする。
- *   false でも production の ID が空なら AdMob は使わず、ハウス広告（下の houseAd）だけになる。
- * - production: AdMob の管理画面で作った本番の広告ユニット ID を入れる。
- *   アプリ ID（ca-app-pub-...~...）は AndroidManifest.xml / Info.plist 側に書く（Capacitor 導入時）。
+ * - テスト広告と本番広告は自動で切り替わる（ここを書き換える必要はない）：
+ *   開発版（debug ビルド。Android Studio の ▶ など）は必ず Google 公式のテスト広告、
+ *   本番版（release ビルド。Google Play に出すもの）だけが下の production の ID を使う。
+ *   判定できないとき・production の ID が空のときもテスト広告になる。
+ * - forceTestAds: true にすると、本番版でもテスト広告にする（通常は false）。
+ * - production: AdMob の管理画面で作った本番の広告ユニット ID。
+ *   アプリ ID（ca-app-pub-...~...）は android/app/build.gradle の ADMOB_APP_ID_PRODUCTION に書く。
+ * - consentDebug: 開発版で、日本にいても EU にいるときの同意画面（UMP）を試すための設定（普段は eea: false）。
  * - houseAd: Web 版と、アプリで AdMob の広告が出せないときのコンティニュー用の自社広告。
  *   画像（縦長でも横長でもよい。比率を保って表示する）とリンク先を差し替えるだけで変更できる。
  */
 window.ADS_CONFIG = {
-  useTestAds: true,
+  forceTestAds: false,
+
+  consentDebug: {
+    eea: false,                 // true: 開発版で毎回、EU の同意画面を出す（確認が終わったら false に戻す）
+    testDeviceHashedIds: [],    // テストする端末の ID（ログに出る「addTestDeviceHashedId("…")」の文字列）
+  },
 
   admob: {
     // Google 公式のテスト用広告ユニット ID（本番では絶対に使わない）

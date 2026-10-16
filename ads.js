@@ -14,6 +14,9 @@
  *   - a mock of that plugin for development: add ?ads=mock to the URL (same event flow as the real one)
  *   - the house ad (ADS_CONFIG.houseAd): web version, and in the app when no AdMob rewarded ad is ready
  * Any failure degrades quietly: no banner, and "continue" falls back to the house ad (or is not offered).
+ * Test or production ads: Google's test ads unless the app is a release build (BuildInfo plugin in android/) with
+ * production IDs set and ADS_CONFIG.forceTestAds off. Anything unknown means test ads.
+ * Order (Google UMP): consent info → consent form if required → only when ads may be requested: initialize, then load.
  * If an AdMob rewarded ad cannot be shown (e.g. network error when it starts), the house ad is shown instead.
  */
 (() => {
@@ -30,7 +33,9 @@ const EV = {
   rLoaded: 'onRewardedVideoAdLoaded', rLoadFail: 'onRewardedVideoAdFailedToLoad', rReward: 'onRewardedVideoAdReward',
   rDismiss: 'onRewardedVideoAdDismissed', rShowFail: 'onRewardedVideoAdFailedToShow',
 };
-const ids = () => { const set = (C.admob || {})[C.useTestAds ? 'test' : 'production'] || {}; return set[os === 'ios' ? 'ios' : 'android'] || {}; };
+let testMode = true;   // decided in init(); stays true unless this is a release build of the app
+const idsOf = mode => { const set = (C.admob || {})[mode] || {}; return set[os === 'ios' ? 'ios' : 'android'] || {}; };
+const ids = () => idsOf(testMode ? 'test' : 'production');
 
 let admob = null, started = null, privacyReq = false, spaceFn = () => {};
 let bannerWanted = false, bannerState = 'none', bannerH = 0, bannerOffset = null;
@@ -76,7 +81,7 @@ function on(ev, fn) { try { admob.addListener(ev, fn); } catch (e) {} }
 function loadReward() {
   if (!admob || !ids().rewarded || rewardReady || rewardLoading) return;
   rewardLoading = true;
-  admob.prepareRewardVideoAd({ adId: ids().rewarded, isTesting: !!C.useTestAds })
+  admob.prepareRewardVideoAd({ adId: ids().rewarded, isTesting: testMode })
     .then(() => { rewardLoading = false; rewardReady = true; })
     .catch(() => { rewardLoading = false; rewardReady = false; clearTimeout(retryTimer); retryTimer = setTimeout(loadReward, 30000); });
 }
@@ -103,7 +108,7 @@ function bannerOffsetOf(anchor) {   // distance from the top of the safe area, i
   return Math.max(0, Math.round(anchor.getBoundingClientRect().top - safeTop + GAP));
 }
 function placeBanner(offset) {
-  const opts = { adId: ids().banner, adSize: 'ADAPTIVE_BANNER', position: 'TOP_CENTER', isTesting: !!C.useTestAds,
+  const opts = { adId: ids().banner, adSize: 'ADAPTIVE_BANNER', position: 'TOP_CENTER', isTesting: testMode,
     // Android: margin pushes the banner down from the safe area. iOS (plugin 8.2.1) applies TOP_CENTER margins with the
     // opposite sign, so a negative value is needed there to move it down. Verify on devices when the plugin is updated.
     margin: os === 'ios' ? -offset : offset };
@@ -138,6 +143,7 @@ function createMock() {
   return {
     addListener(ev, fn) { (L[ev] = L[ev] || []).push(fn); return Promise.resolve({ remove() {} }); },
     initialize: async () => {},
+    resetConsentInfo: async () => {},
     requestConsentInfo: async () => ({ status: 'OBTAINED', isConsentFormAvailable: false, canRequestAds: true, privacyOptionsRequirementStatus: q.get('privacy') === '1' ? 'REQUIRED' : 'NOT_REQUIRED' }),
     showConsentForm: async () => ({ status: 'OBTAINED', canRequestAds: true }),
     showPrivacyOptionsForm: async () => { window.__mockPrivacyShown = (window.__mockPrivacyShown || 0) + 1; },
@@ -180,19 +186,34 @@ function createMock() {
   };
 }
 
+// Production ads only in a release build of the app, with production IDs and forceTestAds off. Unknown → test ads.
+async function isTestBuild() {
+  if (C.forceTestAds !== false) return true;
+  const p = idsOf('production'); if (!p.banner && !p.rewarded) return true;
+  if (mockMode) return q.get('build') !== 'release';   // ?ads=mock&build=release to test the switch in a browser
+  const info = cap.Plugins && cap.Plugins.BuildInfo;
+  if (!info) return true;
+  try { return (await info.get()).debug !== false; } catch (e) { return true; }
+}
+
 async function init() {
   if (started) return started;
   started = (async () => {
     preloadHouse();
     const plugin = native ? cap.Plugins && cap.Plugins.AdMob : mockMode ? createMock() : null;
-    if (!plugin || !(ids().banner || ids().rewarded)) return;   // web, or no ad unit IDs configured: house ad only
+    if (!plugin) return;   // web: house ad only
+    testMode = await isTestBuild();
+    if (!(ids().banner || ids().rewarded)) return;   // no ad unit IDs configured: house ad only
     try {
-      await plugin.initialize({});
-      // UMP consent. iOS App Tracking Transparency is intentionally never requested (non-personalised ads on iOS).
-      let info = await plugin.requestConsentInfo();
+      // UMP consent first; the Mobile Ads SDK is started only when ads may be requested.
+      // iOS App Tracking Transparency is intentionally never requested (non-personalised ads on iOS).
+      const debugEEA = testMode && C.consentDebug && C.consentDebug.eea;   // debug builds only: behave as if in the EEA
+      if (debugEEA && plugin.resetConsentInfo) await plugin.resetConsentInfo();   // so the form shows on every launch
+      let info = await plugin.requestConsentInfo(debugEEA ? { debugGeography: 1, testDeviceIdentifiers: C.consentDebug.testDeviceHashedIds || [] } : {});
       if (info.status === 'REQUIRED' && info.isConsentFormAvailable) info = await plugin.showConsentForm();
       privacyReq = info.privacyOptionsRequirementStatus === 'REQUIRED';
       if (info.canRequestAds === false) return;
+      await plugin.initialize({ initializeForTesting: testMode });
     } catch (e) { return; }   // consent / SDK unavailable: no AdMob, house ad only
     admob = plugin;
     on(EV.bannerSize, s => { bannerH = (s && s.height) || 0; if (bannerWanted && bannerState !== 'hidden') spaceFn(bannerH ? bannerH + GAP * 2 : 0); });

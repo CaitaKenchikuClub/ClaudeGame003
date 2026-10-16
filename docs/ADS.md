@@ -1,6 +1,6 @@
 # 広告（AdMob・ハウス広告）の仕組みと設定
 
-最終更新：2026-10-15（フェーズ1：Web版・模擬広告まで実装。アプリ版の実機確認はフェーズ2で行う）
+最終更新：2026-10-16（フェーズ2：Android アプリに AdMob を導入。開発版はテスト広告、本番版だけ本番 ID。同意管理（UMP）の順番を Google の推奨に合わせた）
 
 ## 1. 何が出るか
 
@@ -48,13 +48,28 @@
 - × のタップ判定は 72×72px で、画像とは重ならない位置（上のバー）にある。
 - アプリを切り替えている間は、5秒の待ち時間が進まない。
 
-## 4. 設定の変え方（`ads-config.js` だけを編集する）
+## 4. テスト広告と本番広告の切り替え（自動）
+
+| ビルド | どうやって入れるか | アプリ ID | 広告ユニット ID |
+|---|---|---|---|
+| **開発版（debug）** | Android Studio の ▶、`./gradlew installDebug` | Google のテスト用（`ca-app-pub-3940256099942544~3347511713`） | **Google のテスト広告**（バナー `…/9214589741`、リワード `…/5224354917`） |
+| **本番版（release）** | Google Play に出す AAB（署名して作る） | 本番（`android/app/build.gradle` の `ADMOB_APP_ID_PRODUCTION`） | 本番（`ads-config.js` の `admob.production.android`） |
+
+- アプリ ID は `android/app/build.gradle` が、ビルドの種類（debug／release）で `AndroidManifest.xml` に入れる。
+- 広告ユニット ID は `ads.js` が決める。アプリの `BuildInfo` プラグイン（`android/app/src/main/java/.../BuildInfoPlugin.java`。アプリが debug ビルドかどうかを返すだけ）に問い合わせ、**release のときだけ**本番 ID を使う。
+- 次のときは、必ずテスト広告になる（安全側）：debug ビルド、`BuildInfo` が使えない、本番 ID が空、`ads-config.js` の `forceTestAds: true`。
+- テスト広告のときは、プラグインの `isTesting`（テストモード）も true にする。プラグインはテストモードのとき、**渡した ID に関係なく Google のテスト ID を使う**（8.2.1 のソースで確認）。さらに `initialize` に `initializeForTesting: true` を渡す。
+- `npm run sync` や ▶ で入れたアプリは debug なので、本番 ID を書いても**開発中に本物の広告は出ない**。
+- **本番版を自分のスマホで試すとき**は、AdMob の管理画面で、そのスマホを「テストデバイス」に登録してから行う（本物の広告が出ても「テスト広告」の表示になり、クリックしても問題にならない）。**自分の本物の広告は絶対にクリックしない**（アカウント停止の原因になる）。
+
+## 4-1. 設定の変え方（`ads-config.js`）
 
 - **ハウス広告の画像・リンク先**：`houseAd.image`（画像ファイルのパス）と `houseAd.url` を書き換える。画像は `assets/ads/` に置く。縦長・横長どちらでもよい。表示秒数は `closeAfterSec`。
-- **本番の広告ユニット ID**：AdMob の管理画面で作成したら `admob.production` に入れ、ストア公開用のビルドでだけ `useTestAds: false` にする。
-  - **テスト用 ID のままストアに出さないこと／開発中に本番 ID で自分の広告をタップしないこと**（アカウント停止の原因になる）。
-  - `useTestAds: false` で本番 ID が空のときは、AdMob を使わずハウス広告だけになる（安全側）。
-- テスト用 ID（Google 公式）：Android バナー `ca-app-pub-3940256099942544/9214589741`、Android リワード `ca-app-pub-3940256099942544/5224354917`、iOS バナー `ca-app-pub-3940256099942544/2435281174`、iOS リワード `ca-app-pub-3940256099942544/1712485313`（iOS の2つはフェーズ2で Google の公式ページと照合すること）。
+- **本番の広告ユニット ID**：`admob.production.android` の `banner`・`rewarded`。アプリ ID は `android/app/build.gradle` の `ADMOB_APP_ID_PRODUCTION`。テスト用 ID と本番 ID を混ぜない。
+- **forceTestAds**：`true` にすると本番版でもテスト広告になる（通常は `false`）。
+- **consentDebug**：開発版で EU の同意画面を試すとき（下の 6-2）だけ使う。普段は `eea: false`。
+- テスト用 ID（Google 公式）：Android バナー `ca-app-pub-3940256099942544/9214589741`、Android リワード `ca-app-pub-3940256099942544/5224354917`、iOS バナー `ca-app-pub-3940256099942544/2435281174`、iOS リワード `ca-app-pub-3940256099942544/1712485313`（iOS は対応しない方針。値は参考）。
+- 対象年齢は **13歳以上**（オーナー決定 2026-10-16）。子ども向けの設定（`tagForChildDirectedTreatment` など）は使わない。
 
 ## 5. 開発用の模擬広告（`?ads=mock`）
 
@@ -69,19 +84,39 @@
 | `&privacy=1` | 同意管理（UMP）で「プライバシー設定」の入口が必要な地域 |
 | `&loaddelay=2000` | リワード広告の読み込みに 2000 ミリ秒かかる（途中で閉じた直後の再視聴でハウス広告になる動きの確認用） |
 
-## 6. フェーズ2（Capacitor 導入時）にやること
+## 6. Android アプリの AdMob（フェーズ2。2026-10-16 導入）
 
-0. Capacitor 本体と Android プロジェクトは導入済み（2026-10-16。`docs/ANDROID.md`）。AdMob を入れるまで、アプリ版の広告はハウス広告になる。
-1. `npm i @capacitor-community/admob@8`（2026-10-15 時点で 8.2.1。Capacitor 8.5 以上、iOS 15 以上、Android API 24 以上）→ `npx cap sync`
-2. アプリ ID を設定する（開発中は Google のテスト用アプリ ID）。
-   - Android：`AndroidManifest.xml` の `<application>` に `com.google.android.gms.ads.APPLICATION_ID`（テスト用 `ca-app-pub-3940256099942544~3347511713`）
-   - iOS：`Info.plist` に `GADApplicationIdentifier`（テスト用 `ca-app-pub-3940256099942544~1458002511`）と `SKAdNetworkItems`
-   - iOS の「トラッキングの許可（ATT）」は**使わない**方針なので、`NSUserTrackingUsageDescription` は入れず、`requestTrackingAuthorization` も呼ばない（`ads.js` は呼んでいない）。
-3. AdMob の管理画面「プライバシーとメッセージ」で、EEA・英国向けの同意メッセージ（GDPR）を作成する。`ads.js` は起動時に同意情報を確認し、必要なら同意画面を出す。プライバシー設定の入口は、必要な地域だけ設定メニューに表示される。
-4. ハウス広告のリンクをアプリの外のブラウザで開くため、`@capacitor/browser` を入れる（入っていれば `ads.js` が自動で使う）。
-5. 実機で確認する（**まだ確認していない**）：
-   - バナーの位置。特に **iOS**：プラグイン 8.2.1 は上配置の margin を逆向きに扱う作りのため、`ads.js` では iOS だけ負の値を渡している。HUD の下に正しく出るか、セーフエリア（ノッチ）との関係を確認する。プラグインを更新したら再確認。
-   - Android の全画面表示（edge-to-edge）でのバナー位置
-   - リワード広告：最後まで見る・途中で閉じる・機内モード（読み込み失敗）・広告の途中でホームに戻って再開
-   - 同意画面（EEA 向けのテストは UMP のデバッグ地域設定を使う）
-6. ストア公開に向けて：プライバシーポリシーのページ、`app-ads.txt`（開発者のウェブサイトのトップに置く必要がある）、Google Play の「データ セーフティ」、App Store の「App のプライバシー」の申告。
+- プラグイン：`@capacitor-community/admob` **8.2.1**（版を固定）。Google の SDK も版を固定：`play-services-ads` 25.4.0、`user-messaging-platform` 4.0.0（`android/variables.gradle`。プラグインは「25.4 の最新」という幅のある指定のため）。
+- 起動時の順番（`ads.js` の `init`。Google の推奨どおり）：
+  1. 同意情報を確認する（UMP の `requestConsentInfo`）
+  2. 同意が必要で、同意画面があれば表示する（`showConsentForm`）
+  3. 広告を出してよい（`canRequestAds`）ときだけ、広告 SDK を起動する（`initialize`）
+  4. リワード広告を読み込み、タイトル画面でバナーを出す
+  - 同意の確認に失敗したとき（オフラインなど）・広告を出せないときは、AdMob を使わずハウス広告だけになる。
+- **プライバシー設定の再表示**：設定メニュー（≡）の「プライバシー設定（広告）」。同意が必要な地域（EU・英国など）のユーザーにだけ表示される。**日本では表示されないのが正常**。
+- インタースティシャル広告は入れていない。
+- iOS の「トラッキングの許可（ATT）」は使わない（iOS は対応しない方針）。
+
+### 6-1. 実機で確かめたこと（2026-10-16、ASUS Zenfone 10・Android 15、開発版）
+- タイトル画面で、HUD の下に Google のテストバナー（「テスト広告」の表示つき）が出る。プレイ中は出ない。
+- ライフ0 →「広告を見てライフ＋1」→ Google のテスト用リワード広告 → 最後まで見て閉じると、ライフ1でカウントダウンから再開。
+- ログで、同意の確認が広告 SDK の起動より先に行われることを確認した（日本では「同意は不要」）。
+- 下の 6-2 の方法で EU の同意画面が出ること、「同意しない」でもバナーが出ること（パーソナライズしない広告）、メニューの「プライバシー設定（広告）」から同意画面をもう一度開けることを確認した。
+
+### 6-2. EU の同意画面を試す方法（開発版だけ）
+1. アプリを起動して、Android Studio の Logcat（または `adb logcat`）で `addTestDeviceHashedId("…")` という行を探し、`"…"` の英数字（端末のテスト用 ID）を控える。
+2. `ads-config.js` の `consentDebug` を `eea: true`、`testDeviceHashedIds: ["控えた ID"]` にする。
+3. `npm run sync` → ▶ で入れて起動すると、毎回 EU 向けの同意画面が出る（テスト用アプリ ID では Google のサンプルの画面）。
+4. 確認が終わったら、**必ず `eea: false`・`testDeviceHashedIds: []` に戻す**（コミットしない）。
+- 一度 EU として同意したあとで普通の設定に戻しても、端末に同意の記録が残ることがある。気になるときは、Android の「設定」→「アプリ」→ ブロッ校長！ →「ストレージ」→「データを削除」（ベストスコアも消えるので注意）。
+
+### 6-3. まだ確認していないこと
+- 本番版（release）での表示（Google Play 登録前・AdMob の審査前は、本番広告が出なくても正常。その間はハウス広告でコンティニューできる）
+- リワード広告を途中で閉じたとき・機内モードのとき・広告の途中でホームに戻ったときの実機での動き（自動テストでは確認済み）
+- ハウス広告のリンクが外部ブラウザで開くか（`@capacitor/browser` は入れていない）
+
+### 6-4. ストア公開に向けて（AdMob・Google Play の管理画面）
+- AdMob の「プライバシーとメッセージ」で、欧州規則（GDPR）のメッセージを作成・公開する。
+- AdMob の「ブロックの管理」で、広告コンテンツの評価の上限を G か PG にする（おすすめ）。
+- Google Play 登録後：AdMob のアプリをストアの掲載情報とリンクする、`app-ads.txt` を開発者のウェブサイトのトップに置く、Play Console で「広告を含む」と「データ セーフティ」（AdMob が集める情報）を申告する、プライバシーポリシーのページを用意する。
+- 本番版の署名（アップロード鍵）を作る。

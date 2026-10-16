@@ -73,8 +73,11 @@
 | @capacitor/core・@capacitor/android（Capacitor） | 8.5.3 | MIT（Copyright (c) 2017-present Drifty Co.） | Web のゲームを Android アプリとして動かす |
 | @capacitor/app・@capacitor/toast | 8.1.2・8.0.1 | MIT（Copyright 2020-present Ionic） | 戻るボタン・終了確認のトースト |
 | @capacitor/share・@capacitor/filesystem | 8.0.3・8.1.5 | MIT（Copyright 2020-present Ionic／Copyright (c) 2025 Ionic） | 結果共有 |
+| @capacitor-community/admob | 8.2.1 | MIT（Copyright (c) 2021 Capacitor Community） | AdMob 広告（バナー・リワード）と同意管理 |
+| Google Mobile Ads SDK（com.google.android.gms:play-services-ads）、User Messaging Platform（com.google.android.ump） | 25.4.0・4.0.0 | Google の利用規約（Google Mobile Ads SDK の利用規約。オープンソースではない） | AdMob 広告・同意管理（UMP） |
 | AndroidX（appcompat・core・activity・fragment・coordinatorlayout・webkit・core-splashscreen）、Apache Cordova framework、Kotlin 標準ライブラリ・kotlinx-coroutines など、上のライブラリが使う Android の部品 | — | Apache License 2.0 | Capacitor の動作に必要 |
 
+- Google Mobile Ads SDK と UMP は、Google の規約に基づいて使用する。中に含まれるオープンソース部品の一覧は、ストア公開前に Android Studio で依存関係を確認して確定する。アプリ内の「ライセンス情報」には、使用していることを表示している（2026-10-16）。
 - アプリ内の「ライセンス情報」に、Capacitor（MIT 全文：`assets/licenses/capacitor-MIT.txt`）と Apache License 2.0（全文：`assets/licenses/Apache-2.0.txt`）を表示する（アプリ版だけ）。
 - 間接的に使われる部品の**完全な一覧**は、Android SDK のある環境（オーナーの Mac）で確定できる。ストア公開前に、Android Studio で依存関係を確認し、必要ならこの表とライセンス情報を更新する。
 - 開発時だけ使うもの：@capacitor/cli（MIT）、@capacitor/assets（MIT。アイコン生成。内部で sharp などを使う）。アプリには含まれない。

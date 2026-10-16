@@ -274,5 +274,71 @@ await rewardedCase('?ads=mock&dup=1', 'reward', true, 'mock rewarded: duplicated
   await ctx.close();
 }
 
+/* ===== Android app: test / production switch and UMP order (Capacitor + AdMob plugin are stubbed) ===== */
+const PROD = { banner: 'ca-app-pub-1111111111111111/2222222222', rewarded: 'ca-app-pub-1111111111111111/3333333333' };
+const TEST = { banner: 'ca-app-pub-3940256099942544/9214589741', rewarded: 'ca-app-pub-3940256099942544/5224354917' };
+async function openApp({ debug = true, buildInfo = true, prod = true, force = false, canRequestAds = true, eea = false } = {}) {
+  const ctx = await browser.newContext({ ...devices['Pixel 7'] });
+  await ctx.addInitScript(o => {
+    const calls = window.__calls = [];
+    const rec = (n, a) => { calls.push([n, a === undefined ? null : JSON.parse(JSON.stringify(a))]); };
+    const AdMob = {
+      addListener() { return Promise.resolve({ remove() {} }); },
+      async resetConsentInfo() { rec('resetConsentInfo'); },
+      async requestConsentInfo(a) { rec('requestConsentInfo', a); return { status: 'NOT_REQUIRED', isConsentFormAvailable: false, canRequestAds: o.canRequestAds, privacyOptionsRequirementStatus: 'NOT_REQUIRED' }; },
+      async showConsentForm() { rec('showConsentForm'); return { status: 'OBTAINED', canRequestAds: true }; },
+      async initialize(a) { rec('initialize', a); },
+      async showBanner(a) { rec('showBanner', a); },
+      async hideBanner() {}, async resumeBanner() {}, async removeBanner() {},
+      async prepareRewardVideoAd(a) { rec('prepareRewardVideoAd', a); return {}; },
+      async showRewardVideoAd() { return {}; },
+    };
+    const Plugins = { AdMob };
+    if (o.buildInfo) Plugins.BuildInfo = { get: async () => ({ debug: o.debug }) };
+    window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins };
+  }, { debug, buildInfo, canRequestAds });
+  await ctx.route('**/ads-config.js', async route => {
+    let body = await (await route.fetch()).text();
+    if (prod) body = body.replace("android: { banner: '', rewarded: '' }", `android: { banner: '${PROD.banner}', rewarded: '${PROD.rewarded}' }`);
+    if (force) body = body.replace('forceTestAds: false', 'forceTestAds: true');
+    if (eea) body = body.replace('eea: false,', 'eea: true,');
+    route.fulfill({ contentType: 'text/javascript', body });
+  });
+  const page = await ctx.newPage(), errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.goto(BASE + 'index.html', { waitUntil: 'load' }); await page.waitForTimeout(4000);   // logo screen, then the title banner
+  const calls = await page.evaluate(() => window.__calls);
+  const first = n => (calls.find(c => c[0] === n) || [])[1];
+  await ctx.close();
+  return { calls, first, names: calls.map(c => c[0]), errors };
+}
+{
+  const r = await openApp({ debug: true });
+  check('app debug build: Google test ad units even with production IDs set', r.first('showBanner')?.adId === TEST.banner && r.first('prepareRewardVideoAd')?.adId === TEST.rewarded, JSON.stringify(r.calls));
+  check('app debug build: test mode on (isTesting, initializeForTesting)', r.first('showBanner')?.isTesting === true && r.first('prepareRewardVideoAd')?.isTesting === true && r.first('initialize')?.initializeForTesting === true);
+  check('UMP: consent info is requested before the Mobile Ads SDK starts and before any ad request', r.names.indexOf('requestConsentInfo') === 0 && r.names.indexOf('initialize') === 1 && r.names.length > 2, r.names.join(','));
+  check('app: no page errors', r.errors.length === 0, r.errors.join(' | '));
+}
+{
+  const r = await openApp({ debug: false });
+  check('app release build: production ad units, test mode off', r.first('showBanner')?.adId === PROD.banner && r.first('prepareRewardVideoAd')?.adId === PROD.rewarded && r.first('showBanner')?.isTesting === false && r.first('initialize')?.initializeForTesting === false, JSON.stringify(r.calls));
+}
+{
+  const a = await openApp({ debug: false, buildInfo: false }), b = await openApp({ debug: false, force: true }), c = await openApp({ debug: false, prod: false });
+  const isTest = r => r.first('showBanner')?.adId === TEST.banner && r.first('showBanner')?.isTesting === true;
+  check('release build without the BuildInfo plugin: test ads (unknown = test)', isTest(a));
+  check('release build with forceTestAds: test ads', isTest(b));
+  check('release build without production IDs: test ads', isTest(c));
+}
+{
+  const r = await openApp({ debug: true, canRequestAds: false });
+  check('UMP: ads may not be requested → SDK not started, no banner / rewarded request', JSON.stringify(r.names) === '["requestConsentInfo"]', r.names.join(','));
+}
+{
+  const d = await openApp({ debug: true, eea: true }), rel = await openApp({ debug: false, eea: true });
+  check('UMP debug (consentDebug.eea): debug build resets consent and asks as if in the EEA', d.names[0] === 'resetConsentInfo' && d.first('requestConsentInfo')?.debugGeography === 1, JSON.stringify(d.calls.slice(0, 2)));
+  check('UMP debug setting is ignored in release builds', !rel.names.includes('resetConsentInfo') && rel.first('requestConsentInfo')?.debugGeography === undefined);
+}
+
 await browser.close(); server.close();
 process.exit(results.every(Boolean) ? 0 : 1);
