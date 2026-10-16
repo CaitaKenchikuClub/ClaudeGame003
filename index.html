@@ -59,7 +59,9 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-acti
 .card h1{font-family:var(--display);font-weight:400;font-size:30px;line-height:1.15;margin:0;color:var(--leaf);text-wrap:balance}
 .card p{margin:0;font-size:13px;line-height:1.7}
 .legend{display:grid;gap:4px;font-size:13px}
-.legend span{display:inline-block;width:2.2em;font-weight:800;font-variant-numeric:tabular-nums}
+.nw{white-space:nowrap}   /* keep a phrase on one line */
+.legend div{display:flex;align-items:center;gap:10px;font-weight:800;font-variant-numeric:tabular-nums}
+.legend canvas{position:static;width:36px;height:30px;flex:none}   /* item pictures, drawn with the game's own drawing functions */
 .big{font-family:var(--display);font-size:52px;line-height:1}
 .foot{grid-column:1/-1;display:grid;gap:8px;justify-items:center}
 button{font-family:var(--display);font-size:20px;color:var(--card);background:var(--leaf);border:3px solid var(--ink);
@@ -130,14 +132,13 @@ button.sub{background:var(--card);color:var(--ink)}
       <div class="card">
         <div class="txt" id="txt">
           <h1 class="title1">ブロッ校長！</h1>
-          <p>カゴを掲げて、空から降るブロッコリーを集めよう。</p>
+          <p>空から降ってくるブロッコリーを<span class="nw">集めよう。</span></p>
           <div class="legend">
-            <div><span>+1</span>ブロッコリー</div>
-            <div><span>+5</span>金のブロッコリー</div>
-            <div><span>+💚</span>ハート（ライフ回復）</div>
-            <div><span>−♥</span>きゅうり</div>
-            <div><span>−♥</span>取りこぼし</div>
-            <div><span>?</span>白い鳥が軌道を変える</div>
+            <div><canvas data-ic="broc" role="img" aria-label="ブロッコリー"></canvas>SCORE +1</div>
+            <div><canvas data-ic="gold" role="img" aria-label="金のブロッコリー"></canvas>SCORE +5</div>
+            <div><canvas data-ic="heart" role="img" aria-label="ハート"></canvas>💚 +1</div>
+            <div><canvas data-ic="cuke" role="img" aria-label="きゅうり"></canvas>💚 −1</div>
+            <div><canvas data-ic="miss" role="img" aria-label="地面に落ちたブロッコリー（取りこぼし）"></canvas>💚 −1</div>
           </div>
         </div>
         <img id="up" src="assets/img/up.webp" alt="" hidden>
@@ -147,7 +148,7 @@ button.sub{background:var(--card);color:var(--ink)}
         <div class="foot">
           <button id="start">はじめる</button>
           <button id="shareBtn" class="sub" type="button" hidden>結果をシェア</button>
-          <div class="hint">指でドラッグ / ← → キー ・ 音が出ます</div>
+          <div class="hint">指でドラッグ・音が出ます</div>
         </div>
       </div>
     </div>
@@ -451,7 +452,7 @@ const SND=(()=>{
 })();
 
 (()=>{
-const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),stage=document.getElementById('stage');
+const cv=document.getElementById('cv'),stage=document.getElementById('stage');let ctx=cv.getContext('2d');   // let: the start card legend borrows the drawing functions
 const $score=document.getElementById('score'),$lives=document.getElementById('lives'),$best=document.getElementById('best');
 const overlay=document.getElementById('overlay'),txt=document.getElementById('txt');
 const INK='#2a2f22';
@@ -867,6 +868,16 @@ if(NAT&&NAT.MediaVolume){   // phone's media volume 0 → keep the game's sound 
   MV.addListener('change',r=>SND.deviceVolumeOn(r.level>0));
 }
 if(NAT)$('licApp').hidden=$('licApp2').hidden=$('licApp3').hidden=false;   // libraries bundled only in the app
+/* start card legend: small pictures drawn by the same functions as the falling items */
+for(const c of document.querySelectorAll('.legend canvas')){
+  const r=Math.min(devicePixelRatio||1,3),w=72,h=60,k=c.dataset.ic,keep=ctx;c.width=w*r/2;c.height=h*r/2;   // drawn at game size (72x60), shown at half (36x30)
+  ctx=c.getContext('2d');ctx.scale(r/2,r/2);
+  if(k==='miss'){ctx.fillStyle='#6fa24c';ctx.fillRect(0,h-12,w,12);ctx.fillStyle='#4f8a2c';for(let x=6;x<w;x+=22){ctx.beginPath();ctx.arc(x,h-12,5,Math.PI,0);ctx.fill();}drawBroc(w/2,h-30,22,1.4);}
+  else if(k==='cuke')drawCuke(w/2,h/2,24,.7);
+  else if(k==='heart')drawHeart(w/2,h/2+2,32,0);
+  else drawBroc(w/2,h/2+2,28,0,k==='gold');
+  ctx=keep;
+}
 addEventListener('resize',resize);
 resize();P.x=W/2;
 items=[{type:'broc',x:W*.18,y:H*.2,vy:0,rot:-.3,vr:0,size:30},{type:'gold',x:W*.82,y:H*.14,vy:0,rot:.2,vr:0,size:30},{type:'cuke',x:W*.8,y:H*.45,vy:0,rot:.6,vr:0,size:30}];
