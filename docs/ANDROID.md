@@ -17,7 +17,7 @@
 | バージョン | versionCode 1 ／ versionName 1.0（`android/app/build.gradle`） |
 | 対応 OS | Android 7.0（API 24）以上。targetSdk 36 |
 | 画面の向き | 縦画面に固定（`AndroidManifest.xml` の `screenOrientation="portrait"`）。※Android 16 以降のタブレットなど大きな画面では、OS の決まりで横にもなる |
-| Capacitor | 8.5.3（core・cli・android）。プラグイン：App 8.1.2、Toast 8.0.1、Share 8.0.3、Filesystem 8.1.5 |
+| Capacitor | 8.5.3（core・cli・android）。プラグイン：App 8.1.2、Toast 8.0.1、Haptics 8.0.2、Share 8.0.3、Filesystem 8.1.5 |
 
 ## 2. オーナーが Mac でやること
 

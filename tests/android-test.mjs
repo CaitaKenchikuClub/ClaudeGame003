@@ -63,6 +63,7 @@ const NATIVE = () => {
   window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: {
     App: { addListener(ev, fn) { if (ev === 'backButton') window.__back = fn; return Promise.resolve({ remove() {} }); }, exitApp() { window.__exits++; return Promise.resolve(); } },
     Toast: { show(o) { window.__toasts.push(o.text); return Promise.resolve(); } },
+    Haptics: { vibrate(o) { (window.__buzz = window.__buzz || []).push(o.duration); return Promise.resolve(); } },
     // the phone's media volume (MediaVolumePlugin.java); window.__setVol(n) is the player pressing the volume buttons
     MediaVolume: { get() { return Promise.resolve({ level: window.__vol, max: 15 }); }, addListener(ev, fn) { if (ev === 'change') window.__volFn = fn; return Promise.resolve({ remove() {} }); } },
   } };
@@ -183,6 +184,7 @@ const audio = p => p.evaluate(() => window.__audio);
 
   await page.evaluate(() => window.__die()); await page.waitForTimeout(400);
   await back(page); await page.waitForTimeout(100);
+  check('losing a life vibrates through the native Haptics plugin (60 ms)', JSON.stringify(await page.evaluate(() => window.__buzz)) === '[60]');
   check('continue card: back is ignored', (await visible(page, '#cont')) && !(await visible(page, '#menu')) && (await exits(page)) === 0 && (await toasts(page)) === 2);
   await page.tap('#contAd'); await page.waitForTimeout(300);
   await back(page); await page.waitForTimeout(100);
@@ -217,7 +219,8 @@ const audio = p => p.evaluate(() => window.__audio);
   await page.evaluate(() => window.__setVol(5)); await page.waitForTimeout(200);
   check('volume raised: the sound starts', (await st()) === 'running');
   await page.waitForTimeout(600);
-  const loud = await page.evaluate(() => { const an = window.__ac.__an, b = new Float32Array(an.fftSize); an.getFloatTimeDomainData(b); return Math.max(...b.map(Math.abs)); });
+  const loud = await page.evaluate(async () => { const an = window.__ac.__an, b = new Float32Array(an.fftSize); let m = 0;   // loudest of several looks: one look can land on a rest in the music
+    for (let i = 0; i < 8; i++) { an.getFloatTimeDomainData(b); m = Math.max(m, ...b.map(Math.abs)); await new Promise(r => setTimeout(r, 50)); } return m; });
   await page.evaluate(() => { window.__peaks = []; window.__setVol(0); }); await page.waitForTimeout(300);
   check('volume back to 0: the sound engine stops', (await st()) === 'suspended');
   const peaks = await page.evaluate(() => window.__peaks);
