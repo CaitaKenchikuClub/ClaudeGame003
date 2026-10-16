@@ -3,7 +3,7 @@
 ## プロジェクト概要
 - スマホ向けの落ちものキャッチゲーム「ブロッ校長！」（2026-10-16 に「ブロッコリーキャッチ」から改名。保存データのキー名 `broc-*`・リポジトリ名・公開 URL は変えていない）。元は Claude のアーティファクトで、そこから GitHub Pages に移行した。
 - ゲームの仕様は **`GAME_SPEC.md`** に書いてある。仕様を変えたら必ず更新すること。
-- 将来は Capacitor で Android / iOS アプリにし、広告で収益化する予定。
+- Capacitor で Android アプリ化した（`android/`、2026-10-16。iOS は対応しない）。広告で収益化する予定。詳細は `docs/ANDROID.md`。
 
 ## オーナーについて
 - オーナーはプログラミングと GitHub の**初心者**。説明は**日本語**で、専門用語は短く補足する。
@@ -42,6 +42,14 @@ archive/original-artifact.html  移行前の元ファイル（参照専用・編
 tests/smoke-test.mjs      ブラウザでの自動動作確認（Playwright）
 docs/                     移行メモ・GitHub Pages の公開手順
 .nojekyll                 GitHub Pages の Jekyll 処理を止めるための空ファイル
+package.json              Capacitor（8.5.3）とプラグイン（App・Toast・Share・Filesystem）の版を固定。npm スクリプト（build／sync／open／icons）
+capacitor.config.json     アプリ名・Application ID（com.caitakenchikuclub.burokocho）・webDir（www）・SystemBars
+scripts/build-web.mjs     アプリに入れるファイルだけを www/ に集める（www/ は git の管理対象外）。ゲームのファイルを足したら WEB_FILES にも足す
+scripts/make-app-icons.mjs アプリのアイコン・スプラッシュを作る（npm run icons）
+android/                  Android Studio で開く Android プロジェクト（Capacitor が生成。縦画面固定・空色の起動画面）
+assets/licenses/          アプリ版で使うライブラリのライセンス全文（Capacitor の MIT、Apache 2.0）
+tests/android-test.mjs    アプリ版の自動テスト（www/ の中身・オフライン起動・戻るボタン）
+docs/ANDROID.md           Android アプリ版の仕組み・オーナーの Mac での手順・確認状況
 GAME_SPEC.md              ゲーム仕様書
 ```
 
@@ -90,6 +98,9 @@ node tests/ads-test.mjs
 
 # 4) 結果共有の自動テスト
 node tests/share-test.mjs
+
+# 5) Android アプリ版の自動テスト（www/ の中身・オフライン起動・戻るボタン）
+node tests/android-test.mjs
 ```
 - `index.html` を直接ダブルクリックで開いても動くが、確認はローカルサーバーで行う（GitHub Pages と同じ条件にするため）。
 - 自動テストは `/ClaudeGame003/` というサブパスで配信し、GitHub Pages と同じ条件にしている。
@@ -101,6 +112,13 @@ node tests/share-test.mjs
 - 公開 URL：https://caitakenchikuclub.github.io/ClaudeGame003/
 - 作業は作業用ブランチで行い、プルリクエストでオーナーに確認してもらってから `main` にマージする。
 
+## Android アプリ版のルール（詳細は docs/ANDROID.md）
+- Web 版とアプリ版は同じファイルを使う。ゲームを直したら `npm run sync` でアプリに反映する（`www/` を直接編集しない）。
+- アプリだけの処理は `window.Capacitor` があるときだけ動かし、Web 版の動きを変えない（例：戻るボタン `onBack`、ライセンス情報の `#licApp`）。
+- Application ID は Google Play 公開後に変えられない。
+- このクラウド環境は Android SDK をダウンロードできないため、ビルドと実機確認はオーナーの Mac で行う。
+
 ## 今後の予定（優先順の目安）
-1. Capacitor 導入（`docs/MIGRATION_NOTES.md` の「Capacitor の注意点」と `docs/ADS.md` の「フェーズ2」を参照）。AdMob プラグイン・共有プラグイン（@capacitor/share・@capacitor/filesystem）の組み込みと、実機確認もここで行う
-2. 広告の本番 ID 設定・ストア公開の準備（プライバシーポリシー、app-ads.txt など）
+1. Android アプリの実機確認（オーナーの Mac で Android Studio を使う。`docs/ANDROID.md` の 5章）。スプラッシュをけんちくぶ！のロゴに差し替え
+2. AdMob（テスト ID）の組み込み（`docs/ADS.md` の「フェーズ2」）
+3. 広告の本番 ID 設定・ストア公開の準備（プライバシーポリシー、app-ads.txt など）

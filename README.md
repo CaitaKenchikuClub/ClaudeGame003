@@ -12,6 +12,7 @@
 - [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) — フォントなど第三者の著作物とライセンスの一覧
 - [docs/ADS.md](docs/ADS.md) — 広告（バナー・コンティニュー）の仕様と設定の変え方
 - [docs/SHARE.md](docs/SHARE.md) — 結果共有（シェア画像）の仕様と設定の変え方
+- [docs/ANDROID.md](docs/ANDROID.md) — Android アプリ版（Capacitor）の仕組みと、Android Studio でスマホに入れる手順
 - [docs/MIGRATION_NOTES.md](docs/MIGRATION_NOTES.md) — アーティファクトからの移行メモ・Capacitor でアプリ化する際の注意点
 
 ## ローカルで動かす

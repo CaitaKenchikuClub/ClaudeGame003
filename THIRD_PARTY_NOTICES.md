@@ -2,7 +2,7 @@
 
 ブロッ校長！（旧名：ブロッコリーキャッチ）に含まれる、または使用している第三者の著作物の一覧です。
 ストア審査（Google Play／App Store）やライセンス表示の確認に使います。
-最終更新：2026-10-15（PWA アイコン追加）
+最終更新：2026-10-16（Android アプリ版のライブラリ追加）
 
 ## 1. アプリに同梱しているもの
 
@@ -66,8 +66,19 @@
 - **絵文字**（💚 🤍 など）：端末に搭載されている絵文字フォント（Apple Color Emoji、Noto Color Emoji、Segoe UI Emoji など）で表示している。アプリにフォントは含めておらず、再配布もしていない。
 - **フォールバック用の日本語フォント**（Hiragino Sans、Yu Gothic など）：CSS で名前を指定しているだけで、同梱していない。
 
-## 2-2. フェーズ2（Capacitor 導入時）に追加する予定のもの
-- **@capacitor/share**・**@capacitor/filesystem**（MIT License）：結果共有で使う予定（2026-10-16 追加）。
+## 2-1. Android アプリ版に同梱しているライブラリ（2026-10-16 追加。Web 版には含まれない）
+| ライブラリ | 版 | ライセンス | 用途 |
+|---|---|---|---|
+| @capacitor/core・@capacitor/android（Capacitor） | 8.5.3 | MIT（Copyright (c) 2017-present Drifty Co.） | Web のゲームを Android アプリとして動かす |
+| @capacitor/app・@capacitor/toast | 8.1.2・8.0.1 | MIT（Copyright 2020-present Ionic） | 戻るボタン・終了確認のトースト |
+| @capacitor/share・@capacitor/filesystem | 8.0.3・8.1.5 | MIT（Copyright 2020-present Ionic／Copyright (c) 2025 Ionic） | 結果共有 |
+| AndroidX（appcompat・core・activity・fragment・coordinatorlayout・webkit・core-splashscreen）、Apache Cordova framework、Kotlin 標準ライブラリ・kotlinx-coroutines など、上のライブラリが使う Android の部品 | — | Apache License 2.0 | Capacitor の動作に必要 |
+
+- アプリ内の「ライセンス情報」に、Capacitor（MIT 全文：`assets/licenses/capacitor-MIT.txt`）と Apache License 2.0（全文：`assets/licenses/Apache-2.0.txt`）を表示する（アプリ版だけ）。
+- 間接的に使われる部品の**完全な一覧**は、Android SDK のある環境（オーナーの Mac）で確定できる。ストア公開前に、Android Studio で依存関係を確認し、必要ならこの表とライセンス情報を更新する。
+- 開発時だけ使うもの：@capacitor/cli（MIT）、@capacitor/assets（MIT。アイコン生成。内部で sharp などを使う）。アプリには含まれない。
+
+## 2-2. フェーズ2（AdMob 導入時）に追加する予定のもの
 - **@capacitor-community/admob**（MIT License）と、それが組み込む **Google Mobile Ads SDK**・**User Messaging Platform（UMP）SDK**（Google の利用規約）。導入時に、ライセンス表示（アプリ内「ライセンス情報」）とストアのプライバシー申告を更新する。
 - 広告の配信により、アプリから Google に端末情報などが送られる（プライバシーポリシーに記載が必要）。Web版（GitHub Pages）は AdMob を読み込まず、外部への通信もない。
 

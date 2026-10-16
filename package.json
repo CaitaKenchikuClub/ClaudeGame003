@@ -1,0 +1,27 @@
+{
+  "name": "burokocho",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ブロッ校長！ — Web 版（GitHub Pages）と Android アプリ版（Capacitor）で同じファイルを使う",
+  "scripts": {
+    "build": "node scripts/build-web.mjs",
+    "sync": "node scripts/build-web.mjs && cap sync android",
+    "open": "cap open android",
+    "icons": "node scripts/make-app-icons.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3",
+    "@capacitor/toast": "8.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.3"
+  }
+}
