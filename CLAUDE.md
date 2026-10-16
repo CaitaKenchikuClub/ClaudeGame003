@@ -22,7 +22,7 @@
 ## ファイル構成
 ```
 index.html                ゲーム本体（HTML + CSS + JS を1ファイルに格納）。GitHub Pages の入口
-assets/img/*.webp         キャラクター画像4枚（元は index.html に base64 で埋め込まれていた）
+assets/img/*.webp         キャラクター画像4枚（元は index.html に base64 で埋め込まれていた）と、けんちくぶ！のロゴ（kenchikubu-logo.webp。アプリ版のロゴ画面 #intro で使う）
 assets/fonts/             同梱フォント（WOFF2）と各フォントの OFL.txt、fonts.css（@font-face）
 assets/icons/             PWA・ホーム画面用アイコン（192／512／180／32px PNG）
 assets/audio/bgm-game.mp3 プレイ中の BGM（Suno で制作、94.36秒ループ）。元の WAV はオーナーが保管
@@ -46,7 +46,7 @@ package.json              Capacitor（8.5.3）とプラグイン（App・Toast�
 capacitor.config.json     アプリ名・Application ID（com.caitakenchikuclub.burokocho）・webDir（www）・SystemBars
 scripts/build-web.mjs     アプリに入れるファイルだけを www/ に集める（www/ は git の管理対象外）。ゲームのファイルを足したら WEB_FILES にも足す
 scripts/make-app-icons.mjs アプリのアイコン・スプラッシュを作る（npm run icons）
-android/                  Android Studio で開く Android プロジェクト（Capacitor が生成。縦画面固定・空色の起動画面）
+android/                  Android Studio で開く Android プロジェクト（Capacitor が生成。縦画面固定・白い起動画面に角丸アイコン）
 assets/licenses/          アプリ版で使うライブラリのライセンス全文（Capacitor の MIT、Apache 2.0）
 tests/android-test.mjs    アプリ版の自動テスト（www/ の中身・オフライン起動・戻るボタン）
 docs/ANDROID.md           Android アプリ版の仕組み・オーナーの Mac での手順・確認状況
@@ -114,11 +114,11 @@ node tests/android-test.mjs
 
 ## Android アプリ版のルール（詳細は docs/ANDROID.md）
 - Web 版とアプリ版は同じファイルを使う。ゲームを直したら `npm run sync` でアプリに反映する（`www/` を直接編集しない）。
-- アプリだけの処理は `window.Capacitor` があるときだけ動かし、Web 版の動きを変えない（例：戻るボタン `onBack`、ライセンス情報の `#licApp`）。
+- アプリだけの処理は `window.Capacitor` があるときだけ動かし、Web 版の動きを変えない（例：けんちくぶ！のロゴ画面 `#intro`、戻るボタン `onBack`、ライセンス情報の `#licApp`）。
 - Application ID は Google Play 公開後に変えられない。
 - このクラウド環境は Android SDK をダウンロードできないため、ビルドと実機確認はオーナーの Mac で行う。
 
 ## 今後の予定（優先順の目安）
-1. Android アプリの実機確認（オーナーの Mac で Android Studio を使う。`docs/ANDROID.md` の 5章）。スプラッシュをけんちくぶ！のロゴに差し替え
+1. Android アプリの実機確認（オーナーの Mac で Android Studio を使う。`docs/ANDROID.md` の 5章）
 2. AdMob（テスト ID）の組み込み（`docs/ADS.md` の「フェーズ2」）
 3. 広告の本番 ID 設定・ストア公開の準備（プライバシーポリシー、app-ads.txt など）
