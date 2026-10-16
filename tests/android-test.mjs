@@ -29,7 +29,7 @@ check('AndroidManifest: portrait only', /android:screenOrientation="portrait"/.t
 check('AndroidManifest: AdMob app id comes from the build type', /android:name="com\.google\.android\.gms\.ads\.APPLICATION_ID" android:value="\$\{admobAppId\}"/.test(manifest));
 const gradle = fs.readFileSync(path.join(ROOT, 'android/app/build.gradle'), 'utf8');
 check('build.gradle: debug builds use Google\'s sample AdMob app id', /ADMOB_APP_ID_TEST = 'ca-app-pub-3940256099942544~3347511713'/.test(gradle) && /defaultConfig \{[\s\S]*manifestPlaceholders = \[admobAppId: ADMOB_APP_ID_TEST\]/.test(gradle));
-check('build.gradle: only release builds use the production app id', /release \{\s*manifestPlaceholders = \[admobAppId: ADMOB_APP_ID_PRODUCTION \?: ADMOB_APP_ID_TEST\]/.test(gradle) && (gradle.match(/ADMOB_APP_ID_PRODUCTION/g) || []).length === 2);
+check('build.gradle: only release builds use the production app id', /buildTypes \{\s*release \{[^}]*manifestPlaceholders = \[admobAppId: ADMOB_APP_ID_PRODUCTION \?: ADMOB_APP_ID_TEST\]/.test(gradle) && (gradle.match(/ADMOB_APP_ID_PRODUCTION/g) || []).length === 2);
 const mainAct = fs.readFileSync(path.join(ROOT, 'android/app/src/main/java/com/caitakenchikuclub/burokocho/MainActivity.java'), 'utf8');
 check('MainActivity registers the BuildInfo plugin (debug / release for ads.js)', /registerPlugin\(BuildInfoPlugin\.class\)/.test(mainAct));
 
