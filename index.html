@@ -255,7 +255,7 @@ const SND=(()=>{
     sfxBus=ac.createGain();sfxBus.gain.value=BASE.se*vol.se;sfxBus.connect(master);
     noiseBuf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);
     const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
-    document.addEventListener('visibilitychange',()=>{if(!ac)return;document.hidden?ac.suspend():resume();});
+    document.addEventListener('visibilitychange',()=>{if(!ac)return;document.hidden?sleep():resume();});
     if(devVol){ac.suspend();resume();}   // app: the sound engine starts only once the phone's media volume is known to be above 0
     for(const k in FILES)FILES[k].req.then(ab=>ab?ac.decodeAudioData(ab,b=>ready(k,b),()=>ready(k,false)):ready(k,false));
     return true;
@@ -263,15 +263,26 @@ const SND=(()=>{
   function wake(){if(!init())return false;if(ac.state==='suspended')resume();return true;}
   // app only: while the phone's media volume is 0 the sound engine stays stopped and no effects are queued, so nothing can slip out
   // when it restarts (after an ad, a return from the background, ...). devVol() asks the phone; devQuiet follows its change events.
+  // app only: fade to silence before stopping, so the phone's audio buffer holds only silence. Otherwise the last few ms of music
+  // left in it play at once, unfaded, when the engine restarts (heard as a loud burst when the media volume goes up from 0).
+  let sleepT=0;
+  function sleep(){
+    if(!ac)return;clearTimeout(sleepT);
+    if(!devVol||ac.state!=='running'){ac.suspend();return;}
+    master.gain.cancelScheduledValues(ac.currentTime);master.gain.setTargetAtTime(0,ac.currentTime,.01);
+    sleepT=setTimeout(()=>{if(devQuiet||held||document.hidden)ac.suspend();},150);
+  }
   function resume(){
     if(!ac||held||document.hidden)return;
     if(!devVol){ac.resume();return;}
-    devVol().then(on=>{devQuiet=!on;if(!ac||held||document.hidden)return;if(!on){ac.suspend();return;}if(ac.state==='running')return;
-      master.gain.setValueAtTime(0,ac.currentTime);ac.resume();master.gain.setTargetAtTime(muted?0:.9,ac.currentTime,.05);},   // fade in: no click
+    devVol().then(on=>{devQuiet=!on;if(!ac||held||document.hidden)return;if(!on){sleep();return;}
+      clearTimeout(sleepT);const t=ac.currentTime;master.gain.cancelScheduledValues(t);
+      if(ac.state==='running'){master.gain.setTargetAtTime(muted?0:.9,t,.05);return;}   // a stop was still pending: just fade back
+      master.gain.setValueAtTime(0,t);ac.resume();master.gain.setTargetAtTime(muted?0:.9,t+.1,.05);},   // 0.1 s of silence, then fade in
       ()=>{devQuiet=false;if(!held&&!document.hidden)ac.resume();});
   }
   function deviceVolume(fn){devVol=fn;}
-  function deviceVolumeOn(on){devQuiet=!on;if(!ac)return;on?resume():ac.suspend();}
+  function deviceVolumeOn(on){devQuiet=!on;if(!ac)return;on?resume():sleep();}
 
   /* --- voices --- */
   function tone(dest,f,t0,dur,o={}){
@@ -447,7 +458,7 @@ const SND=(()=>{
     vol[k]=v;try{localStorage.setItem('broc-vol-'+k,String(v))}catch(e){}
     if(ac)(k==='bgm'?musicBus:sfxBus).gain.setTargetAtTime(BASE[k]*v,ac.currentTime,.03);
   }
-  function hold(on){held=on;if(!ac)return;on?ac.suspend():resume();}   // silence everything while an ad is shown
+  function hold(on){held=on;if(!ac)return;on?sleep():resume();}   // silence everything while an ad is shown
   return {wake,play,stop,fx,setMuted,setVol,hold,deviceVolume,deviceVolumeOn,vol:k=>vol[k],setTempo(v){tempoBoost=v},get muted(){return muted},get started(){return !!ac}};
 })();
 
