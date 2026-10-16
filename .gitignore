@@ -1,2 +1,4 @@
 tests/last-run.png
 tests/share-sample.png
+node_modules/
+www/
