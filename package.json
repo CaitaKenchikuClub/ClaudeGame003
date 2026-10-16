@@ -7,7 +7,7 @@
     "build": "node scripts/build-web.mjs",
     "sync": "node scripts/build-web.mjs && cap sync android",
     "open": "cap open android",
-    "icons": "capacitor-assets generate --android --assetPath resources"
+    "icons": "node scripts/make-app-icons.mjs"
   },
   "engines": {
     "node": ">=22"

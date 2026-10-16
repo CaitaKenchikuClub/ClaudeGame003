@@ -1,5 +1,10 @@
 {
   "appId": "com.caitakenchikuclub.burokocho",
   "appName": "ブロッ校長！",
-  "webDir": "www"
+  "webDir": "www",
+  "plugins": {
+    "SystemBars": {
+      "style": "LIGHT"
+    }
+  }
 }

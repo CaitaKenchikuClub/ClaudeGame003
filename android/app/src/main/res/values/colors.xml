@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ゲームの空の色（index.html の --sky）。起動画面と、画面の端の余白に使う -->
+    <color name="sky">#cfe9f7</color>
+</resources>
