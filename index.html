@@ -93,6 +93,7 @@ button.sub{background:var(--card);color:var(--ink)}
 /* ads: room for the banner on title / result screens (set by Ads.onBannerSpace), continue card */
 #overlay{padding-top:var(--ad-space,0px)}
 .cont .foot button{min-width:220px}
+#shareBtn{font-size:16px;padding:8px 22px;box-shadow:0 3px 0 var(--ink)}
 .cont button.sub{font-size:15px}
 </style>
 
@@ -132,6 +133,7 @@ button.sub{background:var(--card);color:var(--ink)}
         <img id="chara" src="assets/img/chara.webp" alt="ブロッコリー柄ネクタイに緑のスーツの女の子">
         <div class="foot">
           <button id="start">はじめる</button>
+          <button id="shareBtn" class="sub" type="button" hidden>結果をシェア</button>
           <div class="hint">指でドラッグ / ← → キー ・ 音が出ます</div>
         </div>
       </div>
@@ -197,6 +199,8 @@ button.sub{background:var(--card);color:var(--ink)}
 
 <script src="ads-config.js"></script>
 <script src="ads.js"></script>
+<script src="share-config.js"></script>
+<script src="share.js"></script>
 <script>
 /* ---------- sound: everything synthesized with Web Audio ---------- */
 const SND=(()=>{
@@ -698,7 +702,7 @@ function loop(now){const dt=Math.min((now-last)/1000,0.05);last=now;
   if(!paused)step(dt);draw();requestAnimationFrame(loop);}
 function start(){
   items=[];pops=[];bird=null;birdT=8;score=0;nextHeart=HEART_EVERY;lives=3;t=0;spawnT=0.4;P.x=W/2;P.target=null;P.vx=0;P.mood='happy';P.moodT=0;hud();
-  contUsed=false;contOpen=false;contBusy=false;inv=0;cd=0;runBest=best;paused=false;$('cont').hidden=true;ADS.hideBanner();
+  contUsed=false;contOpen=false;contBusy=false;inv=0;cd=0;runBest=best;paused=false;$('cont').hidden=true;$('shareBtn').hidden=true;ADS.hideBanner();
   overlay.hidden=true;running=true;
   SND.wake();SND.setTempo(0);SND.fx('start');SND.play('game');
 }
@@ -708,6 +712,7 @@ function end(){
   if(score>best){best=score;$best.textContent=best;try{localStorage.setItem('broc-best',best)}catch(e){}}
   txt.innerHTML=`<h1>ごちそうさま!</h1><div class="big">${score}</div><p>${nb?'ベスト更新!':'ベスト '+best}</p>`;
   const b=document.getElementById('start');b.textContent='もう一回';
+  lastResult={score};$('shareBtn').hidden=!window.Share;   // result sharing (share.js)
   overlay.hidden=false;b.focus();showBanner();
   SND.play('end',()=>{if(!running)SND.play('menu');});
 }
@@ -722,7 +727,7 @@ const $=id=>document.getElementById(id);
 const menu=$('menu'),$muteNote=$('muteNote');
 function showConfirm(on){$('menuLicense').hidden=$('licFoot').hidden=true;$('menuMain').hidden=on;$('menuFoot').hidden=on;$('menuConfirm').hidden=!on;$('confirmFoot').hidden=!on;$(on?'retryNo':'resume').focus();}
 function openMenu(){
-  if(!menu.hidden||contOpen||cd>0)return;
+  if(!menu.hidden||contOpen||cd>0||shareOpen)return;
   $('privBtn').hidden=!ADS.privacyOptionsRequired();
   paused=running;P.target=null;
   $('menuTitle').textContent=running?'ポーズ中':'設定';
@@ -760,9 +765,17 @@ $('contAd').onclick=()=>{
   ADS.showRewarded().then(done,()=>done('unavailable'));
 };
 $('contEnd').onclick=()=>{if(contOpen)end();};
+
+/* ---------- result sharing (share.js draws a 1080x1080 result image; the banner is hidden while its sheet is open) ---------- */
+let lastResult=null,shareOpen=false;
+$('shareBtn').onclick=()=>{
+  if(!window.Share||!lastResult||shareOpen)return;
+  shareOpen=true;ADS.hideBanner();
+  window.Share.open(lastResult,{onClose(){shareOpen=false;showBanner();$('shareBtn').focus();}});
+};
 // the banner is only shown when the title / result card still fits below it (otherwise the game screen wins)
 const roomFor=px=>stage.clientHeight-overlay.querySelector('.card').offsetHeight-16>=px;
-const showBanner=()=>{if(!running&&!contOpen&&!overlay.hidden&&menu.hidden&&roomFor(74))ADS.showBanner(stage);};   // 74 = 12 + 50 (smallest banner) + 12
+const showBanner=()=>{if(!running&&!contOpen&&!shareOpen&&!overlay.hidden&&menu.hidden&&roomFor(74))ADS.showBanner(stage);};   // 74 = 12 + 50 (smallest banner) + 12
 ADS.onBannerSpace(px=>{document.documentElement.style.setProperty('--ad-space',px+'px');if(px&&!roomFor(px))ADS.hideBanner();});
 ADS.init().then(showBanner);
 addEventListener('resize',showBanner);
