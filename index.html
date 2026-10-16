@@ -90,7 +90,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .menu .foot button{min-width:180px}
 button.sub{background:var(--card);color:var(--ink)}
 /* license information (fonts: SIL OFL 1.1) */
-.menu button.link{font-family:var(--body);font-weight:800;font-size:12px;color:var(--ink);background:none;border:0;box-shadow:none;padding:4px 0;justify-self:start;text-decoration:underline;opacity:.7}
+.menu button.link,.menu a.link{font-family:var(--body);font-weight:800;font-size:12px;color:var(--ink);background:none;border:0;box-shadow:none;padding:4px 0;justify-self:start;text-decoration:underline;opacity:.7}
 .menu button.link:active{transform:none}
 .lic{max-height:min(52vh,420px);overflow:auto;-webkit-overflow-scrolling:touch;display:grid;gap:12px;font-size:12px;line-height:1.6;-webkit-user-select:text;user-select:text}
 .lic h3{font-size:14px;margin:0}
@@ -173,6 +173,7 @@ button.sub{background:var(--card);color:var(--ink)}
           <label class="vol"><span>効果音</span><input type="range" id="volSe" min="0" max="100" step="5"><output id="volSeOut"></output></label>
           <p class="note" id="muteNote" hidden>いまはミュート中です（右上のスピーカーで解除）</p>
           <button id="licBtn" class="link" type="button">ライセンス情報</button>
+          <a id="privacyLink" class="link" href="https://caitakenchikuclub.github.io/ClaudeGame003/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>
           <button id="privBtn" class="link" type="button" hidden>プライバシー設定（広告）</button>
         </div>
         <div class="txt" id="menuLicense" hidden>
@@ -190,13 +191,17 @@ button.sub{background:var(--card);color:var(--ink)}
             </div>
             <div id="licApp" hidden>
               <h3>Capacitor とプラグイン</h3>
-              <p>Copyright (c) 2017-present Drifty Co. / Copyright 2020-present Ionic<br>MIT License</p>
+              <p>Copyright (c) 2017-present Drifty Co. / Copyright 2020-present Ionic / Copyright (c) 2021 Capacitor Community（AdMob プラグイン）<br>MIT License</p>
               <details><summary>ライセンス全文</summary><pre data-src="assets/licenses/capacitor-MIT.txt"></pre></details>
             </div>
             <div id="licApp2" hidden>
               <h3>AndroidX、Kotlin、Apache Cordova など</h3>
               <p>Copyright The Android Open Source Project ほか<br>Apache License, Version 2.0</p>
               <details><summary>ライセンス全文</summary><pre data-src="assets/licenses/Apache-2.0.txt"></pre></details>
+            </div>
+            <div id="licApp3" hidden>
+              <h3>Google Mobile Ads SDK、User Messaging Platform</h3>
+              <p>広告と、広告の同意管理に使用しています。Google の利用規約（Google Mobile Ads SDK の利用規約など）に基づきます。</p>
             </div>
             <p>絵文字（💚 など）は端末に搭載されているフォントで表示しています。</p>
           </div>
@@ -843,7 +848,7 @@ function onBack(){
   backT=now;if(NAT.Toast)NAT.Toast.show({text:'もう一度押すとアプリを終了します',duration:'short'}).catch(()=>{});
 }
 if(NAT&&NAT.App)NAT.App.addListener('backButton',onBack);
-if(NAT)$('licApp').hidden=$('licApp2').hidden=false;   // libraries bundled only in the app
+if(NAT)$('licApp').hidden=$('licApp2').hidden=$('licApp3').hidden=false;   // libraries bundled only in the app
 addEventListener('resize',resize);
 resize();P.x=W/2;
 items=[{type:'broc',x:W*.18,y:H*.2,vy:0,rot:-.3,vr:0,size:30},{type:'gold',x:W*.82,y:H*.14,vy:0,rot:.2,vr:0,size:30},{type:'cuke',x:W*.8,y:H*.45,vy:0,rot:.6,vr:0,size:30}];

@@ -13,4 +13,7 @@ ext {
     androidxJunitVersion = '1.3.0'
     androidxEspressoCoreVersion = '3.7.0'
     cordovaAndroidVersion = '14.0.1'
+    // AdMob plugin (@capacitor-community/admob 8.2.1) asks for '25.4.+': pin the exact Google SDK versions
+    playServicesAdsVersion = '25.4.0'
+    userMessagingPlatformVersion = '4.0.0'
 }

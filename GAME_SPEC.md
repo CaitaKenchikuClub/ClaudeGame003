@@ -151,6 +151,7 @@
 - `prefers-reduced-motion`（視差効果を減らす設定）が有効な端末では、揺れや回転などのアニメーションを抑える。
 - フォントは「Dela Gothic One」（見出し・スコア・ボタン、ウェイト400）と「M PLUS Rounded 1c」（本文 500、太字 800。canvas の得点ポップも 800）。2026-10-15 から Google Fonts ではなく**アプリに同梱**したフォント（`assets/fonts/`、SIL OFL 1.1）を使い、外部への通信はない。
 - 設定メニュー（≡）の「ライセンス情報」から、フォントの著作権表示とライセンス全文を見られる（2026-10-15 追加）。
+- その下の「プライバシーポリシー」で、公開ページ `privacy.html`（https://caitakenchikuclub.github.io/ClaudeGame003/privacy.html ）を新しいタブ（アプリ版では外部のブラウザ）で開く（2026-10-16 追加。Web 版・アプリ版とも）。
 
 ### 画像（`assets/img/`）
 

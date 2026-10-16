@@ -1,5 +1,10 @@
 apply plugin: 'com.android.application'
 
+// AdMob app IDs (docs/ADS.md). debug builds always use Google's sample app ID and test ads;
+// only release builds (the one uploaded to Google Play) use the production ID.
+def ADMOB_APP_ID_TEST = 'ca-app-pub-3940256099942544~3347511713'
+def ADMOB_APP_ID_PRODUCTION = 'ca-app-pub-9985841758256257~9542081505'
+
 android {
     namespace = "com.caitakenchikuclub.burokocho"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -9,6 +14,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        manifestPlaceholders = [admobAppId: ADMOB_APP_ID_TEST]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,6 +24,7 @@ android {
     }
     buildTypes {
         release {
+            manifestPlaceholders = [admobAppId: ADMOB_APP_ID_PRODUCTION ?: ADMOB_APP_ID_TEST]
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
