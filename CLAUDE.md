@@ -51,6 +51,7 @@ assets/licenses/          アプリ版で使うライブラリのライセンス
 tests/android-test.mjs    アプリ版の自動テスト（www/ の中身・オフライン起動・戻るボタン）
 docs/ANDROID.md           Android アプリ版の仕組み・オーナーの Mac での手順・確認状況
 GAME_SPEC.md              ゲーム仕様書
+privacy.html              プライバシーポリシー（日本語・英語。運営者：けんちくぶ！）。GitHub Pages で公開し、AdMob の同意メッセージ・Google Play・設定メニューのリンクから使う。アプリには同梱しない。広告や保存データの扱いを変えたら更新する
 ```
 
 ## index.html の中身（上から順）

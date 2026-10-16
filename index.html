@@ -90,7 +90,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .menu .foot button{min-width:180px}
 button.sub{background:var(--card);color:var(--ink)}
 /* license information (fonts: SIL OFL 1.1) */
-.menu button.link{font-family:var(--body);font-weight:800;font-size:12px;color:var(--ink);background:none;border:0;box-shadow:none;padding:4px 0;justify-self:start;text-decoration:underline;opacity:.7}
+.menu button.link,.menu a.link{font-family:var(--body);font-weight:800;font-size:12px;color:var(--ink);background:none;border:0;box-shadow:none;padding:4px 0;justify-self:start;text-decoration:underline;opacity:.7}
 .menu button.link:active{transform:none}
 .lic{max-height:min(52vh,420px);overflow:auto;-webkit-overflow-scrolling:touch;display:grid;gap:12px;font-size:12px;line-height:1.6;-webkit-user-select:text;user-select:text}
 .lic h3{font-size:14px;margin:0}
@@ -173,6 +173,7 @@ button.sub{background:var(--card);color:var(--ink)}
           <label class="vol"><span>効果音</span><input type="range" id="volSe" min="0" max="100" step="5"><output id="volSeOut"></output></label>
           <p class="note" id="muteNote" hidden>いまはミュート中です（右上のスピーカーで解除）</p>
           <button id="licBtn" class="link" type="button">ライセンス情報</button>
+          <a id="privacyLink" class="link" href="https://caitakenchikuclub.github.io/ClaudeGame003/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>
           <button id="privBtn" class="link" type="button" hidden>プライバシー設定（広告）</button>
         </div>
         <div class="txt" id="menuLicense" hidden>

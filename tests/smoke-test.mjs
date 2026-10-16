@@ -147,6 +147,14 @@ await page3.tap('#menuBtn'); await page3.waitForTimeout(100);
 const t1 = await T('t'); await page3.waitForTimeout(600);
 check('menu: opens and pauses the game', (await shown('menu')) && t1 === await T('t'));
 check('menu: no ゲームをやめる on the web (app only)', !(await shown('quit')));
+check('menu: privacy policy link opens the published page in a new tab', (await shown('privacyLink')) && JSON.stringify(await page3.evaluate(() => { const a = document.getElementById('privacyLink'); return [a.href, a.target]; })) === JSON.stringify(['https://caitakenchikuclub.github.io/ClaudeGame003/privacy.html', '_blank']));
+{
+  const pv = await page3.context().newPage(), bad = [];
+  pv.on('response', r => { if (r.status() >= 400) bad.push(r.url()); }); pv.on('pageerror', e => bad.push(e.message));
+  await pv.goto(BASE + 'privacy.html', { waitUntil: 'load' });
+  check('privacy.html: loads with the bundled fonts, Japanese and English, contact address', bad.length === 0 && (await pv.textContent('h1')) === 'プライバシーポリシー' && (await pv.locator('#en h1').textContent()) === 'Privacy Policy' && (await pv.locator('a[href="mailto:caita.kenchiku.club@gmail.com"]').count()) === 2, bad.join(','));
+  await pv.close();
+}
 await page3.evaluate(() => { for (const [id, v] of [['volBgm', 40], ['volSe', 25]]) { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('input')); } });
 check('menu: BGM / SE volumes saved separately', JSON.stringify(await page3.evaluate(() => [localStorage.getItem('broc-vol-bgm'), localStorage.getItem('broc-vol-se')])) === '["0.4","0.25"]');
 await page3.tap('#retry');
