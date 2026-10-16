@@ -51,7 +51,6 @@ assets/licenses/          アプリ版で使うライブラリのライセンス
 tests/android-test.mjs    アプリ版の自動テスト（www/ の中身・オフライン起動・戻るボタン）
 docs/ANDROID.md           Android アプリ版の仕組み・オーナーの Mac での手順・確認状況
 GAME_SPEC.md              ゲーム仕様書
-privacy.html              プライバシーポリシー（日本語・英語。運営者：けんちくぶ！）。GitHub Pages で公開し、AdMob の同意メッセージ・Google Play・設定メニューのリンクから使う。アプリには同梱しない。広告や保存データの扱いを変えたら更新する
 ```
 
 ## index.html の中身（上から順）
@@ -63,6 +62,11 @@ privacy.html              プライバシーポリシー（日本語・英語。
    - ポーズ・設定メニュー（`#menu`）の処理は即時関数の後半（`openMenu` / `closeMenu`）。ポーズ中は `paused=true` で `step()` を呼ばない。
 - コードは 1 行に詰めた書き方になっている。編集するときは**周りの書き方に合わせる**。整形し直すなどの差分だけの変更はしない。
 - `drawGirl()` は未使用（GAME_SPEC.md の既知の不具合 #2）。消すかどうかはオーナーに確認する。
+
+## プライバシーポリシー
+- 本文は別リポジトリ **PrivacyPolicy** の `burokocho/index.html` にある（このリポジトリには置かない。2026-10-16 移動）。公開 URL：https://caitakenchikuclub.github.io/PrivacyPolicy/burokocho/
+- 設定メニューの「プライバシーポリシー」（`#privacyLink`）、AdMob の同意メッセージ、Google Play はこの URL を使う。URL は変えない。
+- 広告や保存データの扱いを変えたら、PrivacyPolicy 側の本文も更新する。
 
 ## 変えてはいけない値（保存データの互換性）
 - `localStorage` のキー `broc-best`（ベストスコア）、`broc-mute`（消音）、`broc-vol-bgm`／`broc-vol-se`（音量）。名前を変えると、プレイヤーの記録や設定が消える。
