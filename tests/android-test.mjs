@@ -26,6 +26,7 @@ const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'capacitor.config.json'),
 check('capacitor.config.json: app id / name / webDir', cfg.appId === 'com.caitakenchikuclub.burokocho' && cfg.appName === 'ブロッ校長！' && cfg.webDir === 'www');
 const manifest = fs.readFileSync(path.join(ROOT, 'android/app/src/main/AndroidManifest.xml'), 'utf8');
 check('AndroidManifest: portrait only', /android:screenOrientation="portrait"/.test(manifest));
+check('AndroidManifest: VIBRATE permission (navigator.vibrate does nothing without it)', /<uses-permission android:name="android\.permission\.VIBRATE" \/>/.test(manifest));
 check('AndroidManifest: AdMob app id comes from the build type', /android:name="com\.google\.android\.gms\.ads\.APPLICATION_ID" android:value="\$\{admobAppId\}"/.test(manifest));
 const gradle = fs.readFileSync(path.join(ROOT, 'android/app/build.gradle'), 'utf8');
 check('build.gradle: debug builds use Google\'s sample AdMob app id', /ADMOB_APP_ID_TEST = 'ca-app-pub-3940256099942544~3347511713'/.test(gradle) && /defaultConfig \{[\s\S]*manifestPlaceholders = \[admobAppId: ADMOB_APP_ID_TEST\]/.test(gradle));

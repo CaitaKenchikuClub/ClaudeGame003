@@ -36,4 +36,6 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- navigator.vibrate() in the game (losing a life) does nothing in the WebView without it -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>
