@@ -1,6 +1,6 @@
 # 第三者の著作物・ライセンス一覧（THIRD_PARTY_NOTICES）
 
-ブロッコリーキャッチに含まれる、または使用している第三者の著作物の一覧です。
+ブロッ校長！（旧名：ブロッコリーキャッチ）に含まれる、または使用している第三者の著作物の一覧です。
 ストア審査（Google Play／App Store）やライセンス表示の確認に使います。
 最終更新：2026-10-15（PWA アイコン追加）
 
@@ -67,6 +67,7 @@
 - **フォールバック用の日本語フォント**（Hiragino Sans、Yu Gothic など）：CSS で名前を指定しているだけで、同梱していない。
 
 ## 2-2. フェーズ2（Capacitor 導入時）に追加する予定のもの
+- **@capacitor/share**・**@capacitor/filesystem**（MIT License）：結果共有で使う予定（2026-10-16 追加）。
 - **@capacitor-community/admob**（MIT License）と、それが組み込む **Google Mobile Ads SDK**・**User Messaging Platform（UMP）SDK**（Google の利用規約）。導入時に、ライセンス表示（アプリ内「ライセンス情報」）とストアのプライバシー申告を更新する。
 - 広告の配信により、アプリから Google に端末情報などが送られる（プライバシーポリシーに記載が必要）。Web版（GitHub Pages）は AdMob を読み込まず、外部への通信もない。
 

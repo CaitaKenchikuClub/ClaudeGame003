@@ -48,7 +48,7 @@ page.on('response', r => { if (r.status() >= 400 && !r.url().endsWith('favicon.i
 
 await page.goto(BASE + 'index.html', { waitUntil: 'load' });
 await page.waitForTimeout(800);
-check('title', (await page.title()) === 'ブロッコリーキャッチ');
+check('title', (await page.title()) === 'ブロッ校長！');
 const imgs = await page.evaluate(() => [...document.images].map(i => i.complete && i.naturalWidth > 0));
 await page.evaluate(() => document.fonts.ready);
 const loadedFonts = await page.evaluate(() => [...new Set([...document.fonts].filter(f => f.status === 'loaded').map(f => f.family.replace(/["']/g, '') + ' ' + f.weight))].sort().join(', '));

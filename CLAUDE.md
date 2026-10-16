@@ -1,7 +1,7 @@
-# CLAUDE.md — ブロッコリーキャッチ 開発ガイド（Claude Code 向け）
+# CLAUDE.md — ブロッ校長！ 開発ガイド（Claude Code 向け）
 
 ## プロジェクト概要
-- スマホ向けの落ちものキャッチゲーム「ブロッコリーキャッチ」。元は Claude のアーティファクトで、そこから GitHub Pages に移行した。
+- スマホ向けの落ちものキャッチゲーム「ブロッ校長！」（2026-10-16 に「ブロッコリーキャッチ」から改名。保存データのキー名 `broc-*`・リポジトリ名・公開 URL は変えていない）。元は Claude のアーティファクトで、そこから GitHub Pages に移行した。
 - ゲームの仕様は **`GAME_SPEC.md`** に書いてある。仕様を変えたら必ず更新すること。
 - 将来は Capacitor で Android / iOS アプリにし、広告で収益化する予定。
 
@@ -31,6 +31,10 @@ ads-config.js             広告の設定（テスト／本番の広告ユニッ
 assets/ads/               ハウス広告の画像
 tests/ads-test.mjs        広告の自動テスト（バナー位置・コンティニュー・キャンセル・失敗・通知の順序・重複）
 docs/ADS.md               広告の仕様・設定の変え方・Capacitor 導入時の手順
+share.js                  結果共有（1080×1080 の共有画像を Canvas で描画、Web Share／Capacitor Share、プレビュー）。ゲームは window.Share だけを使う
+share-config.js           共有テキスト・画像内の文字・キャラ画像・ファイル名の設定
+tests/share-test.mjs      共有の自動テスト
+docs/SHARE.md             共有の仕様・設定の変え方・Capacitor 導入時の手順
 manifest.webmanifest      PWA の設定（アプリ名・アイコン・縦画面・standalone）。パスは相対、id は書かない
 design/icon-source.webp   アイコンの元画像（1254×1254。Capacitor のアプリアイコン生成にも使う）
 THIRD_PARTY_NOTICES.md    第三者の著作物・ライセンス一覧（ストア審査用）
@@ -62,6 +66,12 @@ GAME_SPEC.md              ゲーム仕様書
 - 広告ユニット ID・ハウス広告の画像とリンク先は `ads-config.js` だけで変える。テスト用 ID と本番 ID を混ぜない。
 - 広告まわりを変えたら `node tests/ads-test.mjs` も実行する。Web 版では `?ads=mock` で模擬 AdMob を試せる。
 
+## 結果共有のルール（詳細は docs/SHARE.md）
+- 共有の処理は `share.js` にまとめる。ゲーム本体は `window.Share.open()` だけを呼ぶ。share.js が読み込めなくてもゲームは動くこと。
+- 共有画像はスクリーンショットではなく Canvas で描く。乱数を使わず、同梱フォントと画像だけを使い、同じスコアなら毎回同じ画像にする（テストで確認している）。
+- 文言は `share-config.js` で変える。共有テキストに URL は入れない（オーナー方針）。
+- 変えたら `node tests/share-test.mjs` を実行する。
+
 ## フォント・第三者素材のルール
 - 外部の CDN（Google Fonts など）からフォントやライブラリを読み込まない。アプリ化したときにオフラインで動かなくなるため。
 - フォントは `assets/fonts/` に同梱済み（SIL OFL 1.1）。各フォルダの `OFL.txt` は削除・変更しない。
@@ -77,6 +87,9 @@ node tests/smoke-test.mjs
 
 # 3) 広告の自動テスト（Web 版のハウス広告と模擬 AdMob）
 node tests/ads-test.mjs
+
+# 4) 結果共有の自動テスト
+node tests/share-test.mjs
 ```
 - `index.html` を直接ダブルクリックで開いても動くが、確認はローカルサーバーで行う（GitHub Pages と同じ条件にするため）。
 - 自動テストは `/ClaudeGame003/` というサブパスで配信し、GitHub Pages と同じ条件にしている。
@@ -89,5 +102,5 @@ node tests/ads-test.mjs
 - 作業は作業用ブランチで行い、プルリクエストでオーナーに確認してもらってから `main` にマージする。
 
 ## 今後の予定（優先順の目安）
-1. Capacitor 導入（`docs/MIGRATION_NOTES.md` の「Capacitor の注意点」と `docs/ADS.md` の「フェーズ2」を参照）。AdMob プラグインの組み込みと、広告の実機確認もここで行う
+1. Capacitor 導入（`docs/MIGRATION_NOTES.md` の「Capacitor の注意点」と `docs/ADS.md` の「フェーズ2」を参照）。AdMob プラグイン・共有プラグイン（@capacitor/share・@capacitor/filesystem）の組み込みと、実機確認もここで行う
 2. 広告の本番 ID 設定・ストア公開の準備（プライバシーポリシー、app-ads.txt など）
