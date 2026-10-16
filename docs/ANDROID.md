@@ -127,3 +127,39 @@ Mac の Claude Code には「`docs/ANDROID.md` の 2-1 と 2-2 の手順で、An
 - シェア：共有シートが開くか、X・LINE などに画像とテキストが渡るか、キャンセルして戻れるか
 - ハウス広告のリンクが外部ブラウザで開くか
 - メディア音量0のとき、広告のあと・バックグラウンドからの復帰で電子音が鳴らないこと（`MediaVolumePlugin` はこのクラウド環境ではビルドできず、Java のコンパイルもまだ）。音量を上げたら音が戻ること
+
+## 6. 本番版（release）の署名とビルド（2026-10-17）
+Google Play に出すファイル（AAB）は、**アップロード鍵**で署名する。Google Play では「Play アプリ署名」を使う（本当の署名鍵は Google が預かり、こちらはアップロード鍵で署名して出す）。
+
+### 6-1. 鍵とパスワードの置き場所（オーナーの Mac）
+| もの | 場所 | git |
+|---|---|---|
+| アップロード鍵 | `~/Keystores/burokocho-upload.jks`（別名 `upload`。RSA 2048、有効期限 2054年） | 入れない（`android/.gitignore` で `*.jks`・`*.keystore` を除外） |
+| パスワード | macOS のキーチェーン（サービス名 `burokocho-upload-key`。「キーチェーンアクセス」アプリで確認できる） | 入れない |
+| 鍵の場所の設定 | `android/keystore.properties`（鍵のパス・別名・キーチェーンのサービス名だけ。パスワードは書かない） | 入れない |
+
+- `android/app/build.gradle` は、release のビルドを頼まれたときだけ、キーチェーンからパスワードを読む（開発版のビルドでは読まない）。
+- 鍵の証明書の SHA-256：`74:1A:F7:F0:31:2B:34:B5:9B:EC:10:DB:BD:3B:BE:D4:F8:E1:1A:A4:2A:01:A0:57:E2:0D:82:66:B1:26:D2:84`
+- **鍵ファイルとパスワードは、Mac 以外の安全な場所にもバックアップする**。なくした場合は、Play Console からアップロード鍵のリセットを申請できるが、日数がかかる。
+- 別の Mac でビルドするとき：鍵ファイルを同じ場所にコピーし、`security add-generic-password -a "$USER" -s burokocho-upload-key -w` でパスワードを保存し、`android/keystore.properties` を作る（中身は下）。
+```
+storeFile=~/Keystores/burokocho-upload.jks
+keyAlias=upload
+keychainService=burokocho-upload-key
+```
+
+### 6-2. 本番版を作る
+```
+npm run sync
+cd android
+JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-21.0.11/Contents/Home ./gradlew bundleRelease
+```
+- できるファイル：`android/app/build/outputs/bundle/release/app-release.aab`（これを Play Console にアップロードする）
+- 実機で試す APK が欲しいときは `assembleRelease`（`android/app/build/outputs/apk/release/app-release.apk`）。開発版と署名が違うので、スマホに入れるときは開発版を先に削除する必要がある（ベストスコアなどのデータも消える）。
+- **本番版は本番の広告 ID を使う**。自分のスマホで試す前に、AdMob でそのスマホをテストデバイスに登録すること（`docs/ADS.md` 4章）。
+- 新しい版を出すたびに、`android/app/build.gradle` の `versionCode` を1つ増やす（`versionName` は表示用の版名）。最初の版は `versionCode 1`・`versionName "1.0"`。
+
+### 6-3. 確認できたこと（2026-10-17）
+- `bundleRelease`・`assembleRelease` で署名つきの AAB・APK ができ、署名の証明書が上の鍵のものと一致すること（`jarsigner`・`apksigner`）
+- 本番版に、本番の AdMob アプリ ID が入っていること。debuggable（デバッグ用）になっていないこと
+- 本番版の実機での動作は、まだ確認していない（次の作業）
