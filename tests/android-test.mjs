@@ -54,6 +54,12 @@ const NATIVE = () => {
   window.__toasts = []; window.__exits = 0; window.__audio = 0; window.__vol = window.__vol ?? 8;
   window.__setVol = n => { window.__vol = n; window.__volFn && window.__volFn({ level: n, max: 15 }); };
   const AC = window.AudioContext; window.AudioContext = function (...a) { window.__audio++; return (window.__ac = new AC(...a)); };   // counts when sound starts
+  // loudness of what reaches the speaker at the moment the engine is stopped (the game must fade to silence first)
+  window.__peaks = [];
+  const conn = AudioNode.prototype.connect;
+  AudioNode.prototype.connect = function (d, ...r) { if (d instanceof AudioDestinationNode && !d.context.__an) { d.context.__an = d.context.createAnalyser(); conn.call(this, d.context.__an); } return conn.call(this, d, ...r); };
+  const sus = AC.prototype.suspend;
+  AC.prototype.suspend = function () { if (this.__an && this.state === 'running') { const b = new Float32Array(this.__an.fftSize); this.__an.getFloatTimeDomainData(b); window.__peaks.push(Math.max(...b.map(Math.abs))); } return sus.call(this); };
   window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: {
     App: { addListener(ev, fn) { if (ev === 'backButton') window.__back = fn; return Promise.resolve({ remove() {} }); }, exitApp() { window.__exits++; return Promise.resolve(); } },
     Toast: { show(o) { window.__toasts.push(o.text); return Promise.resolve(); } },
@@ -210,8 +216,12 @@ const audio = p => p.evaluate(() => window.__audio);
   check('volume 0: playing keeps it stopped', (await st()) === 'suspended' && (await g(page)).running);
   await page.evaluate(() => window.__setVol(5)); await page.waitForTimeout(200);
   check('volume raised: the sound starts', (await st()) === 'running');
-  await page.evaluate(() => window.__setVol(0)); await page.waitForTimeout(200);
+  await page.waitForTimeout(600);
+  const loud = await page.evaluate(() => { const an = window.__ac.__an, b = new Float32Array(an.fftSize); an.getFloatTimeDomainData(b); return Math.max(...b.map(Math.abs)); });
+  await page.evaluate(() => { window.__peaks = []; window.__setVol(0); }); await page.waitForTimeout(300);
   check('volume back to 0: the sound engine stops', (await st()) === 'suspended');
+  const peaks = await page.evaluate(() => window.__peaks);
+  check('volume back to 0: faded to silence before stopping (nothing left to burst out when the volume goes up)', loud > 0.01 && peaks.length === 1 && peaks[0] < 0.005, `playing ${loud.toFixed(3)} → at stop ${peaks.map(v => v.toFixed(4))}`);
   await setHidden(true); await page.waitForTimeout(100); await setHidden(false); await page.waitForTimeout(300);
   check('return from the background at volume 0: stays stopped', (await st()) === 'suspended');
   await page.evaluate(() => { window.__vol = 6; }); await setHidden(true); await page.waitForTimeout(100); await setHidden(false); await page.waitForTimeout(300);
