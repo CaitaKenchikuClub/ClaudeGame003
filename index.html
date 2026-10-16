@@ -81,6 +81,10 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .vol{display:grid;grid-template-columns:3.6em 1fr 2.6em;align-items:center;gap:8px;font-weight:800;font-size:14px}
 .vol input{width:100%;height:32px;margin:0;accent-color:var(--leaf)}
 .vol output{text-align:right;font-variant-numeric:tabular-nums}
+.menu .x{position:absolute;top:12px;right:12px;font-size:0;padding:0;width:38px;height:38px;border-width:2px;box-shadow:0 2px 0 var(--ink);
+  display:grid;place-items:center;background:var(--card);color:var(--ink)}   /* × in the pause menu: same as つづける */
+.menu .x svg{width:18px;height:18px}
+.menu .x:active{transform:translateY(2px);box-shadow:0 0 0 var(--ink)}
 .menu .note{font-size:12px;opacity:.7}
 .menu .foot{gap:12px}
 .menu .foot button{min-width:180px}
@@ -164,6 +168,7 @@ button.sub{background:var(--card);color:var(--ink)}
       <div class="card" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
         <div class="txt" id="menuMain">
           <h2 id="menuTitle">ポーズ中</h2>
+          <button class="x" id="menuX" type="button" aria-label="つづける"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           <label class="vol"><span>BGM</span><input type="range" id="volBgm" min="0" max="100" step="5"><output id="volBgmOut"></output></label>
           <label class="vol"><span>効果音</span><input type="range" id="volSe" min="0" max="100" step="5"><output id="volSeOut"></output></label>
           <p class="note" id="muteNote" hidden>いまはミュート中です（右上のスピーカーで解除）</p>
@@ -753,7 +758,7 @@ function openMenu(){
   paused=running;P.target=null;
   $('menuTitle').textContent=running?'ポーズ中':'設定';
   $('resume').textContent=running?'つづける':'とじる';
-  $('retry').hidden=!running;$('quit').hidden=!running||!(NAT&&NAT.App);   // quitting the app is for the Android app only
+  $('retry').hidden=$('menuX').hidden=!running;$('quit').hidden=!running||!(NAT&&NAT.App);   // quitting the app is for the Android app only
   for(const k of ['bgm','se']){const v=Math.round(SND.vol(k)*100),id=k==='bgm'?'volBgm':'volSe';$(id).value=v;$(id+'Out').textContent=v;}
   $muteNote.hidden=!SND.muted;
   menu.hidden=false;showConfirm(false);ADS.hideBanner();   // no banner next to the settings controls
@@ -761,7 +766,7 @@ function openMenu(){
 function closeMenu(){menu.hidden=true;paused=false;P.target=null;keys={};showBanner();}
 $('menuBtn').onclick=e=>{e.stopPropagation();menu.hidden?openMenu():closeMenu();};
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&running)openMenu();});   // auto-pause when the app is switched or the screen turns off; stays paused until つづける
-$('resume').onclick=closeMenu;
+$('resume').onclick=$('menuX').onclick=closeMenu;
 $('retry').onclick=()=>showConfirm(true);
 $('retryNo').onclick=()=>showConfirm(false);
 $('quit').onclick=()=>showConfirm(true,true);

@@ -132,7 +132,9 @@ const audio = p => p.evaluate(() => window.__audio);
   check('title: presses more than 2 s apart only show the toast again', (await toasts(page)) === 2 && (await exits(page)) === 0);
   await page.waitForTimeout(2100);
 
-  await page.tap('#menuBtn'); await page.waitForTimeout(100); await back(page);
+  await page.tap('#menuBtn'); await page.waitForTimeout(100);
+  check('title settings menu: no × (とじる only), no ゲームをやめる', (await visible(page, '#menu')) && !(await visible(page, '#menuX')) && !(await visible(page, '#quit')));
+  await back(page);
   check('title settings menu: back closes it', !(await visible(page, '#menu')) && (await toasts(page)) === 2);
 
   await page.tap('#start'); await page.waitForTimeout(300);

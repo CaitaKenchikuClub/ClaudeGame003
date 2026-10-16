@@ -156,6 +156,12 @@ await page3.tap('#retryNo');
 check('menu: cancelling keeps the game', (await shown('menuMain')) && (await T('score')) === 37);
 await page3.tap('#resume'); await page3.waitForTimeout(300);
 check('menu: resume continues the game', !(await shown('menu')) && (await T('t')) > t1);
+await page3.tap('#menuBtn'); await page3.waitForTimeout(100);
+const xr = await page3.evaluate(() => { const c = document.querySelector('#menu .card').getBoundingClientRect(), x = document.getElementById('menuX').getBoundingClientRect(), rg = document.createRange(); rg.selectNodeContents(document.getElementById('menuTitle')); const h = rg.getBoundingClientRect(); return { top: x.top - c.top, right: c.right - x.right, w: x.width, clear: h.right <= x.left || h.bottom <= x.top }; });
+// title text (not the full-width h2 box) must not run under the ×
+check('menu: × sits in the top-right corner of the pause menu', (await shown('menuX')) && xr.top < 20 && xr.right < 20 && xr.w >= 36 && xr.clear, JSON.stringify(xr));
+const t2 = await T('t'); await page3.tap('#menuX'); await page3.waitForTimeout(300);
+check('menu: × continues the game like つづける', !(await shown('menu')) && (await T('t')) > t2);
 await page3.tap('#menuBtn'); await page3.tap('#retry'); await page3.tap('#retryYes'); await page3.waitForTimeout(300);
 check('menu: confirmed retry restarts from zero', !(await shown('menu')) && (await T('score')) === 0 && (await T('t')) < 1);
 // Auto-pause: simulate the page becoming hidden (app switch / screen off)
