@@ -234,7 +234,7 @@ button.sub{background:var(--card);color:var(--ink)}
 <script>
 /* ---------- sound: everything synthesized with Web Audio ---------- */
 const SND=(()=>{
-  let held=false,tempoBoost=0,ac=null,master,musicBus,sfxBus,noiseBuf,seq=null,muted=false,wantSong=null,lastBlow=0;
+  let held=false,devQuiet=false,devVol=null,tempoBoost=0,ac=null,master,musicBus,sfxBus,noiseBuf,seq=null,muted=false,wantSong=null,lastBlow=0;
   try{muted=localStorage.getItem('broc-mute')==='1'}catch(e){}
   const BASE={bgm:.55,se:.8},vol={bgm:1,se:1};   // per-bus volume 0..1 chosen in the settings menu
   for(const k in vol)try{const v=parseFloat(localStorage.getItem('broc-vol-'+k));if(v>=0&&v<=1)vol[k]=v;}catch(e){}
@@ -254,11 +254,23 @@ const SND=(()=>{
     sfxBus=ac.createGain();sfxBus.gain.value=BASE.se*vol.se;sfxBus.connect(master);
     noiseBuf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);
     const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
-    document.addEventListener('visibilitychange',()=>{if(!ac)return;document.hidden?ac.suspend():held||ac.resume();});
+    document.addEventListener('visibilitychange',()=>{if(!ac)return;document.hidden?ac.suspend():resume();});
+    if(devVol){ac.suspend();resume();}   // app: the sound engine starts only once the phone's media volume is known to be above 0
     for(const k in FILES)FILES[k].req.then(ab=>ab?ac.decodeAudioData(ab,b=>ready(k,b),()=>ready(k,false)):ready(k,false));
     return true;
   }
-  function wake(){if(!init())return false;if(ac.state==='suspended')ac.resume();return true;}
+  function wake(){if(!init())return false;if(ac.state==='suspended')resume();return true;}
+  // app only: while the phone's media volume is 0 the sound engine stays stopped and no effects are queued, so nothing can slip out
+  // when it restarts (after an ad, a return from the background, ...). devVol() asks the phone; devQuiet follows its change events.
+  function resume(){
+    if(!ac||held||document.hidden)return;
+    if(!devVol){ac.resume();return;}
+    devVol().then(on=>{devQuiet=!on;if(!ac||held||document.hidden)return;if(!on){ac.suspend();return;}if(ac.state==='running')return;
+      master.gain.setValueAtTime(0,ac.currentTime);ac.resume();master.gain.setTargetAtTime(muted?0:.9,ac.currentTime,.05);},   // fade in: no click
+      ()=>{devQuiet=false;if(!held&&!document.hidden)ac.resume();});
+  }
+  function deviceVolume(fn){devVol=fn;}
+  function deviceVolumeOn(on){devQuiet=!on;if(!ac)return;on?resume():ac.suspend();}
 
   /* --- voices --- */
   function tone(dest,f,t0,dur,o={}){
@@ -421,7 +433,7 @@ const SND=(()=>{
       noise(sfxBus,t+.02,.07,{filter:'lowpass',freq:1600,vol:.22});noise(sfxBus,t+.11,.07,{filter:'lowpass',freq:1400,vol:.16});},
   };
   function fx(name){
-    if(!ac||muted)return;
+    if(!ac||muted||devQuiet)return;
     if(name==='blow'){const n=performance.now();if(n-lastBlow<160)return;lastBlow=n;}
     FX[name](ac.currentTime+.01);
   }
@@ -434,8 +446,8 @@ const SND=(()=>{
     vol[k]=v;try{localStorage.setItem('broc-vol-'+k,String(v))}catch(e){}
     if(ac)(k==='bgm'?musicBus:sfxBus).gain.setTargetAtTime(BASE[k]*v,ac.currentTime,.03);
   }
-  function hold(on){held=on;if(!ac)return;on?ac.suspend():document.hidden||ac.resume();}   // silence everything while an ad is shown
-  return {wake,play,stop,fx,setMuted,setVol,hold,vol:k=>vol[k],setTempo(v){tempoBoost=v},get muted(){return muted},get started(){return !!ac}};
+  function hold(on){held=on;if(!ac)return;on?ac.suspend():resume();}   // silence everything while an ad is shown
+  return {wake,play,stop,fx,setMuted,setVol,hold,deviceVolume,deviceVolumeOn,vol:k=>vol[k],setTempo(v){tempoBoost=v},get muted(){return muted},get started(){return !!ac}};
 })();
 
 (()=>{
@@ -848,6 +860,12 @@ function onBack(){
   backT=now;if(NAT.Toast)NAT.Toast.show({text:'もう一度押すとアプリを終了します',duration:'short'}).catch(()=>{});
 }
 if(NAT&&NAT.App)NAT.App.addListener('backButton',onBack);
+if(NAT&&NAT.MediaVolume){   // phone's media volume 0 → keep the game's sound stopped (see SND.resume)
+  const MV=NAT.MediaVolume;
+  SND.deviceVolume(()=>MV.get().then(r=>r.level>0));
+  MV.get().then(r=>SND.deviceVolumeOn(r.level>0)).catch(()=>{});
+  MV.addListener('change',r=>SND.deviceVolumeOn(r.level>0));
+}
 if(NAT)$('licApp').hidden=$('licApp2').hidden=$('licApp3').hidden=false;   // libraries bundled only in the app
 addEventListener('resize',resize);
 resize();P.x=W/2;
