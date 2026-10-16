@@ -116,8 +116,8 @@
 - ハウス広告のリンクが外部ブラウザで開くか（`@capacitor/browser` は入れていない）
 
 ### 6-4. ストア公開に向けて（AdMob・Google Play の管理画面）
-- プライバシーポリシー：`privacy.html`（公開 URL https://caitakenchikuclub.github.io/ClaudeGame003/privacy.html 。main にマージすると公開される）。設定メニューの「プライバシーポリシー」からも開ける。
+- プライバシーポリシー：リポジトリ PrivacyPolicy の `burokocho/index.html`（公開 URL https://caitakenchikuclub.github.io/PrivacyPolicy/burokocho/ 。PrivacyPolicy の main にマージすると公開される）。設定メニューの「プライバシーポリシー」からも開ける。
 - AdMob の「プライバシーとメッセージ」で、欧州規則（GDPR）のメッセージを作成・公開する（プライバシーポリシーの URL は上のもの）。
 - AdMob の「ブロックの管理」で、広告コンテンツの評価の上限を G か PG にする（おすすめ）。
-- Google Play 登録後：AdMob のアプリをストアの掲載情報とリンクする、`app-ads.txt` を開発者のウェブサイトのトップに置く、Play Console で「広告を含む」と「データ セーフティ」（AdMob が集める情報）を申告する、プライバシーポリシーのページを用意する。
+- Google Play 登録後：AdMob のアプリをストアの掲載情報とリンクする、`app-ads.txt` を開発者のウェブサイトのトップに置く、Play Console で「広告を含む」と「データ セーフティ」（AdMob が集める情報）を申告する（プライバシーポリシーの URL は上のもの）。
 - 本番版の署名（アップロード鍵）を作る。
