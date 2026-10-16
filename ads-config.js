@@ -26,9 +26,9 @@ window.ADS_CONFIG = {
       android: { banner: 'ca-app-pub-3940256099942544/9214589741', rewarded: 'ca-app-pub-3940256099942544/5224354917' },
       ios:     { banner: 'ca-app-pub-3940256099942544/2435281174', rewarded: 'ca-app-pub-3940256099942544/1712485313' },
     },
-    // 本番用（AdMob で作成したら入れる）
+    // 本番用（AdMob で作成。2026-10-16）。release ビルドでだけ使われる
     production: {
-      android: { banner: '', rewarded: '' },
+      android: { banner: 'ca-app-pub-9985841758256257/9192571028', rewarded: 'ca-app-pub-9985841758256257/3431968723' },
       ios:     { banner: '', rewarded: '' },
     },
   },

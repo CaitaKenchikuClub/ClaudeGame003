@@ -299,7 +299,9 @@ async function openApp({ debug = true, buildInfo = true, prod = true, force = fa
   }, { debug, buildInfo, canRequestAds });
   await ctx.route('**/ads-config.js', async route => {
     let body = await (await route.fetch()).text();
-    if (prod) body = body.replace("android: { banner: '', rewarded: '' }", `android: { banner: '${PROD.banner}', rewarded: '${PROD.rewarded}' }`);
+    const p = prod ? PROD : { banner: '', rewarded: '' };   // stand-in production IDs (or none), whatever ads-config.js holds
+    body = body.replace(/(production: \{\s*android: \{ )banner: '[^']*', rewarded: '[^']*'/, `$1banner: '${p.banner}', rewarded: '${p.rewarded}'`);
+    if (!body.includes(`banner: '${p.banner}', rewarded: '${p.rewarded}'`)) throw new Error('could not set the production IDs in ads-config.js');
     if (force) body = body.replace('forceTestAds: false', 'forceTestAds: true');
     if (eea) body = body.replace('eea: false,', 'eea: true,');
     route.fulfill({ contentType: 'text/javascript', body });
