@@ -149,6 +149,27 @@ async function openSheet(p) { await p.tap('#shareBtn'); await p.waitForFunction(
   check('app path: no JS errors', errors.length === 0, errors.join(' | '));
   await ctx.close();
 }
+/* ===== 6b. Android app with ImageSharePlugin.java: the image goes through it (lasting read permission for X) ===== */
+{
+  const setup = () => {
+    window.__cap = [];
+    window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: {
+      Filesystem: { writeFile: async o => { window.__cap.push({ fn: 'writeFile', path: o.path }); return { uri: 'file:///cache/' + o.path }; } },
+      Share: { share: async o => { window.__cap.push({ fn: 'share', files: o.files }); return {}; } },
+      ImageShare: { share: async o => { window.__cap.push({ fn: 'imageShare', file: o.file, text: o.text, title: o.title }); } },
+    } };
+  };
+  const { ctx, page, errors } = await open({ setup });
+  await toResult(page, 45); await openSheet(page);
+  await page.tap('[data-a=image]'); await page.waitForTimeout(500);
+  const calls = await page.evaluate(() => window.__cap);
+  check('app (ImageShare): PNG written to the cache, shared with the text through ImageShare, not @capacitor/share',
+    calls.length === 2 && calls[0].fn === 'writeFile' && calls[1].fn === 'imageShare' && calls[1].file === 'file:///cache/share/burokocho-45.png' && calls[1].text === T(45), JSON.stringify(calls));
+  await page.tap('[data-a=text]'); await page.waitForTimeout(300);
+  check('app (ImageShare): text-only share still uses @capacitor/share', (await page.evaluate(() => window.__cap.at(-1).fn)) === 'share');
+  check('app (ImageShare): no JS errors', errors.length === 0, errors.join(' | '));
+  await ctx.close();
+}
 /* ===== 7. share.js missing: the game still works and simply has no share button ===== */
 {
   const ctx = await browser.newContext({ ...devices['iPhone 13'] }); const page = await ctx.newPage(); const errors = [];
