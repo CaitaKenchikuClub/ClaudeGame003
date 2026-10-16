@@ -17,7 +17,7 @@
 | バージョン | versionCode 1 ／ versionName 1.0（`android/app/build.gradle`） |
 | 対応 OS | Android 7.0（API 24）以上。targetSdk 36 |
 | 画面の向き | 縦画面に固定（`AndroidManifest.xml` の `screenOrientation="portrait"`）。※Android 16 以降のタブレットなど大きな画面では、OS の決まりで横にもなる |
-| Capacitor | 8.5.3（core・cli・android）。プラグイン：App 8.1.2、Toast 8.0.1、Share 8.0.3、Filesystem 8.1.5 |
+| Capacitor | 8.5.3（core・cli・android）。プラグイン：App 8.1.2、Toast 8.0.1、Haptics 8.0.2、Share 8.0.3、Filesystem 8.1.5 |
 
 ## 2. オーナーが Mac でやること
 
@@ -100,6 +100,10 @@ Mac の Claude Code には「`docs/ANDROID.md` の 2-1 と 2-2 の手順で、An
   - 自動テスト（`tests/android-test.mjs`）で、止める瞬間の出力が無音であることを確認している（直す前は鳴っている最中と同じ大きさだった）。
 - 広告そのものの音は AdMob が出すもので、この対策の対象外。
 - Web 版は今までと同じ。
+
+### 3-2-4. 振動・X への画像付き投稿（2026-10-16）
+- 振動：Android の WebView は `navigator.vibrate` を無視するため、アプリ版はライフを失ったときに `@capacitor/haptics` で振動させる（`index.html` の `buzz`）。`VIBRATE` 権限は `AndroidManifest.xml` にある。
+- X に画像付きで投稿すると「メディアの処理」が終わらない問題：画像付きの共有を自作の `ImageSharePlugin.java` に切り替えた（詳細は `docs/SHARE.md` の 5章）。
 
 ### 3-3. 画面の端（セーフエリア）とステータスバー
 - ゲームの画面は、今までどおり CSS の `env(safe-area-inset-*)` で、カメラの穴やナビゲーションバーと重ならないようにしている。Capacitor 8 の SystemBars がこの値を正しく渡す（古い WebView では、アプリ側でゲームの画面を内側に寄せる）。

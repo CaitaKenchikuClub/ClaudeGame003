@@ -23,7 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
-Capacitor プラグイン（@capacitor/app、@capacitor/share、@capacitor/toast）
+Capacitor プラグイン（@capacitor/app、@capacitor/haptics、@capacitor/share、@capacitor/toast）
 ----------------------------------------
 Copyright 2020-present Ionic
 https://ionic.io

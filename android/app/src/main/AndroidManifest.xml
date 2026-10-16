@@ -36,6 +36,14 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- navigator.vibrate() in the game (losing a life) does nothing in the WebView without it -->
+    <!-- vibration when a life is lost (the Haptics plugin) -->
     <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- ImageSharePlugin: find the apps that can receive the result image, to give them read permission -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="image/*" />
+        </intent>
+    </queries>
 </manifest>

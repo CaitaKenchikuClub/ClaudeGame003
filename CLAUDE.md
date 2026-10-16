@@ -42,7 +42,7 @@ archive/original-artifact.html  移行前の元ファイル（参照専用・編
 tests/smoke-test.mjs      ブラウザでの自動動作確認（Playwright）
 docs/                     移行メモ・GitHub Pages の公開手順
 .nojekyll                 GitHub Pages の Jekyll 処理を止めるための空ファイル
-package.json              Capacitor（8.5.3）とプラグイン（App・Toast・Share・Filesystem・AdMob 8.2.1）の版を固定。npm スクリプト（build／sync／open／icons）
+package.json              Capacitor（8.5.3）とプラグイン（App・Toast・Haptics・Share・Filesystem・AdMob 8.2.1）の版を固定。npm スクリプト（build／sync／open／icons）
 capacitor.config.json     アプリ名・Application ID（com.caitakenchikuclub.burokocho）・webDir（www）・SystemBars
 scripts/build-web.mjs     アプリに入れるファイルだけを www/ に集める（www/ は git の管理対象外）。ゲームのファイルを足したら WEB_FILES にも足す
 scripts/make-app-icons.mjs アプリのアイコン・スプラッシュを作る（npm run icons）

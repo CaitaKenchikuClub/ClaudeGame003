@@ -110,8 +110,10 @@ const blobToBase64 = b => new Promise((ok, ng) => { const fr = new FileReader();
 /* ---------- sharing back-ends ---------- */
 const isAbort = e => e && (e.name === 'AbortError' || /cancel/i.test(e.message || ''));
 async function shareImageNative(blob, r) {   // Android / iOS app (needs @capacitor/filesystem + @capacitor/share)
-  const { Filesystem, Share: CapShare } = cap.Plugins;
+  const { Filesystem, Share: CapShare, ImageShare } = cap.Plugins;
   const file = await Filesystem.writeFile({ path: 'share/' + fileName(r), data: await blobToBase64(blob), directory: 'CACHE', recursive: true });
+  // Android app: ImageSharePlugin.java keeps the receiving app allowed to read the image (X uploads it after "Post")
+  if (ImageShare) return ImageShare.share({ file: file.uri, title: C.title, text: text(r), dialogTitle: '結果をシェア' });
   await CapShare.share({ title: C.title, text: text(r), files: [file.uri], dialogTitle: '結果をシェア' });
 }
 function canShareImageWeb(blob, r) {
