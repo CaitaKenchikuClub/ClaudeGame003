@@ -42,7 +42,7 @@ await new Promise(r => server.listen(0, r));
 const BASE = `http://localhost:${server.address().port}/`;
 const browser = await chromium.launch();
 
-const HOOK = "window.__g=()=>({running,paused,cd,contOpen,contBusy});window.__die=()=>{lives=1;items.push({type:'broc',x:5,y:GROUND-1,vx:0,vy:100,rot:0,vr:0,size:30});};";
+const HOOK = "window.__g=()=>({running,paused,cd,contOpen,contBusy});window.__score=v=>{score=v;};window.__die=()=>{lives=1;items.push({type:'broc',x:5,y:GROUND-1,vx:0,vy:100,rot:0,vr:0,size:30});};";
 // stub of what the Capacitor runtime injects on Android (window.Capacitor + Plugins.App / Plugins.Toast)
 const NATIVE = () => {
   window.__toasts = []; window.__exits = 0; window.__audio = 0;
@@ -144,6 +144,19 @@ const audio = p => p.evaluate(() => window.__audio);
   check('licenses: Capacitor / Apache notices listed in the app', (await visible(page, '#licApp')) && (await visible(page, '#licApp2')));
   await back(page);
   check('licenses: back returns to the menu', (await visible(page, '#menuMain')) && !(await visible(page, '#menuLicense')));
+  check('pause menu: ゲームをやめる shown in the app', await visible(page, '#quit'));
+  await page.evaluate(() => window.__score(999)); await page.tap('#quit'); await page.waitForTimeout(100);
+  check('quit: asks for confirmation (score not saved)', (await visible(page, '#menuConfirm')) && (await page.textContent('#confirmTitle')) === 'ゲームをやめますか？' && (await page.textContent('#confirmMsg')).includes('記録されず') && (await page.textContent('#retryYes')) === 'やめる' && (await exits(page)) === 0);
+  await page.tap('#retryNo'); await page.waitForTimeout(100);
+  check('quit: このまま続ける returns to the menu, app stays open', (await visible(page, '#menuMain')) && (await exits(page)) === 0);
+  await page.tap('#quit'); await page.waitForTimeout(100); await back(page);
+  check('quit confirmation: back returns to the menu', (await visible(page, '#menuMain')) && (await exits(page)) === 0);
+  await page.tap('#quit'); await page.tap('#retryYes'); await page.waitForTimeout(100);
+  check('quit: やめる closes the app without saving the score', (await exits(page)) === 1 && (await page.evaluate(() => localStorage.getItem('broc-best'))) !== '999');
+  await back(page); await page.evaluate(() => { window.__exits = 0; window.__score(0); });   // the stub does not really close: back to the menu for the next checks
+  await page.tap('#retry'); await page.waitForTimeout(100);
+  check('retry confirmation keeps its own wording after quit', (await page.textContent('#confirmTitle')) === 'リトライしますか？' && (await page.textContent('#retryYes')) === 'リトライする');
+  await back(page); await page.waitForTimeout(100);
   await back(page); await page.waitForTimeout(100);
   const s = await g(page);
   check('pause menu: back closes it and play resumes', !(await visible(page, '#menu')) && s.running && !s.paused);

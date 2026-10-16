@@ -197,12 +197,13 @@ button.sub{background:var(--card);color:var(--ink)}
           </div>
         </div>
         <div class="txt" id="menuConfirm" hidden>
-          <h2>リトライしますか？</h2>
-          <p>今回のスコアは記録されず、最初からやり直しになります。</p>
+          <h2 id="confirmTitle">リトライしますか？</h2>
+          <p id="confirmMsg">今回のスコアは記録されず、最初からやり直しになります。</p>
         </div>
         <div class="foot" id="menuFoot">
           <button id="resume" type="button">つづける</button>
           <button id="retry" class="sub" type="button">リトライ</button>
+          <button id="quit" class="sub" type="button" hidden>ゲームをやめる</button>
         </div>
         <div class="foot" id="licFoot" hidden>
           <button id="licBack" class="sub" type="button">もどる</button>
@@ -744,14 +745,15 @@ sndBtn.onclick=e=>{e.stopPropagation();SND.setMuted(!SND.muted);if(!SND.muted&&!
 /* ---------- pause / settings menu (BGM・効果音の音量, リトライ) ---------- */
 const $=id=>document.getElementById(id);
 const menu=$('menu'),$muteNote=$('muteNote');
-function showConfirm(on){$('menuLicense').hidden=$('licFoot').hidden=true;$('menuMain').hidden=on;$('menuFoot').hidden=on;$('menuConfirm').hidden=!on;$('confirmFoot').hidden=!on;$(on?'retryNo':'resume').focus();}
+let quitAsk=false;   // the confirm card asks about リトライ (false) or ゲームをやめる (true, app only)
+function showConfirm(on,q){if(on){quitAsk=!!q;$('confirmTitle').textContent=q?'ゲームをやめますか？':'リトライしますか？';$('confirmMsg').textContent=q?'今回のスコアは記録されず、アプリを終了します。':'今回のスコアは記録されず、最初からやり直しになります。';$('retryYes').textContent=q?'やめる':'リトライする';}$('menuLicense').hidden=$('licFoot').hidden=true;$('menuMain').hidden=on;$('menuFoot').hidden=on;$('menuConfirm').hidden=!on;$('confirmFoot').hidden=!on;$(on?'retryNo':'resume').focus();}
 function openMenu(){
   if(!menu.hidden||contOpen||cd>0||shareOpen)return;
   $('privBtn').hidden=!ADS.privacyOptionsRequired();
   paused=running;P.target=null;
   $('menuTitle').textContent=running?'ポーズ中':'設定';
   $('resume').textContent=running?'つづける':'とじる';
-  $('retry').hidden=!running;
+  $('retry').hidden=!running;$('quit').hidden=!running||!(NAT&&NAT.App);   // quitting the app is for the Android app only
   for(const k of ['bgm','se']){const v=Math.round(SND.vol(k)*100),id=k==='bgm'?'volBgm':'volSe';$(id).value=v;$(id+'Out').textContent=v;}
   $muteNote.hidden=!SND.muted;
   menu.hidden=false;showConfirm(false);ADS.hideBanner();   // no banner next to the settings controls
@@ -762,13 +764,14 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&running)op
 $('resume').onclick=closeMenu;
 $('retry').onclick=()=>showConfirm(true);
 $('retryNo').onclick=()=>showConfirm(false);
+$('quit').onclick=()=>showConfirm(true,true);
 $('licBtn').onclick=()=>{$('menuMain').hidden=$('menuFoot').hidden=true;$('menuLicense').hidden=$('licFoot').hidden=false;$('licBack').focus();};
 $('licBack').onclick=()=>showConfirm(false);
 for(const d of document.querySelectorAll('.lic details'))d.addEventListener('toggle',()=>{   // load the bundled OFL.txt on first open
   const pre=d.querySelector('pre');if(!d.open||pre.textContent)return;
   fetch(pre.dataset.src).then(r=>r.ok?r.text():Promise.reject()).then(t=>{pre.textContent=t;}).catch(()=>{pre.textContent='全文はアプリ内のファイル '+pre.dataset.src+' に収録しています。';});
 });
-$('retryYes').onclick=()=>{closeMenu();start();};
+$('retryYes').onclick=()=>{if(quitAsk){NAT.App.exitApp();return;}closeMenu();start();};
 $('privBtn').onclick=()=>ADS.showPrivacyOptions();
 
 /* ---------- ads: continue with a rewarded ad (max once per play), banner on title / result screens ---------- */
