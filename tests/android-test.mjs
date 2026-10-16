@@ -133,8 +133,10 @@ const audio = p => p.evaluate(() => window.__audio);
   await page.waitForTimeout(2100);
 
   await page.tap('#menuBtn'); await page.waitForTimeout(100);
-  check('title settings menu: no × (とじる only), no ゲームをやめる', (await visible(page, '#menu')) && !(await visible(page, '#menuX')) && !(await visible(page, '#quit')));
-  await back(page);
+  check('title settings menu: × shown, no ゲームをやめる', (await visible(page, '#menu')) && (await visible(page, '#menuX')) && !(await visible(page, '#quit')));
+  await page.tap('#menuX'); await page.waitForTimeout(100);
+  check('title settings menu: × closes it like とじる', !(await visible(page, '#menu')) && (await visible(page, '#start')) && !(await g(page)).running);
+  await page.tap('#menuBtn'); await page.waitForTimeout(100); await back(page);
   check('title settings menu: back closes it', !(await visible(page, '#menu')) && (await toasts(page)) === 2);
 
   await page.tap('#start'); await page.waitForTimeout(300);

@@ -82,7 +82,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .vol input{width:100%;height:32px;margin:0;accent-color:var(--leaf)}
 .vol output{text-align:right;font-variant-numeric:tabular-nums}
 .menu .x{position:absolute;top:12px;right:12px;font-size:0;padding:0;width:38px;height:38px;border-width:2px;box-shadow:0 2px 0 var(--ink);
-  display:grid;place-items:center;background:var(--card);color:var(--ink)}   /* × in the pause menu: same as つづける */
+  display:grid;place-items:center;background:var(--card);color:var(--ink)}   /* × in the menu: same as つづける / とじる */
 .menu .x svg{width:18px;height:18px}
 .menu .x:active{transform:translateY(2px);box-shadow:0 0 0 var(--ink)}
 .menu .note{font-size:12px;opacity:.7}
@@ -758,7 +758,7 @@ function openMenu(){
   paused=running;P.target=null;
   $('menuTitle').textContent=running?'ポーズ中':'設定';
   $('resume').textContent=running?'つづける':'とじる';
-  $('retry').hidden=$('menuX').hidden=!running;$('quit').hidden=!running||!(NAT&&NAT.App);   // quitting the app is for the Android app only
+  $('retry').hidden=!running;$('menuX').setAttribute('aria-label',running?'つづける':'とじる');$('quit').hidden=!running||!(NAT&&NAT.App);   // quitting the app is for the Android app only
   for(const k of ['bgm','se']){const v=Math.round(SND.vol(k)*100),id=k==='bgm'?'volBgm':'volSe';$(id).value=v;$(id+'Out').textContent=v;}
   $muteNote.hidden=!SND.muted;
   menu.hidden=false;showConfirm(false);ADS.hideBanner();   // no banner next to the settings controls
