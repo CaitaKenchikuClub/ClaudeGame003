@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ブロッコリーキャッチ</title>
+<title>ブロッ校長！</title>
 <!-- PWA / home screen (all paths relative so they work under /ClaudeGame003/ and in a Capacitor WebView; no service worker yet) -->
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#cfe9f7">
@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="ブロッコリー">
+<meta name="apple-mobile-web-app-title" content="ブロッ校長！">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <!-- Base styles originally injected by the Claude artifact host; kept verbatim so layout/safe-area behaviour is unchanged -->
 <style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
@@ -52,6 +52,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-acti
 .card .txt{display:grid;gap:12px}
 .card img{grid-column:2;grid-row:1/span 2;width:132px;max-width:none;margin:-60px -14px -6px -10px;align-self:end;
   filter:drop-shadow(0 4px 0 rgba(42,47,34,.18))}
+.card h1.title1{white-space:nowrap;font-size:min(30px,calc((100vw - 192px)/6))}   /* app title on one line: shrinks only on very narrow screens */
 .card h1{font-family:var(--display);font-weight:400;font-size:30px;line-height:1.15;margin:0;color:var(--leaf);text-wrap:balance}
 .card p{margin:0;font-size:13px;line-height:1.7}
 .legend{display:grid;gap:4px;font-size:13px}
@@ -114,7 +115,7 @@ button.sub{background:var(--card);color:var(--ink)}
     <div class="overlay" id="overlay">
       <div class="card">
         <div class="txt" id="txt">
-          <h1>ブロッコリー<br>キャッチ</h1>
+          <h1 class="title1">ブロッ校長！</h1>
           <p>カゴを掲げて、空から降るブロッコリーを集めよう。</p>
           <div class="legend">
             <div><span>+1</span>ブロッコリー</div>
