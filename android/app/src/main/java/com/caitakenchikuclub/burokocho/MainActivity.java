@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(BuildInfoPlugin.class);   // debug / release for ads.js
+        registerPlugin(MediaVolumePlugin.class);   // media volume 0 → the game keeps its sound stopped
         super.onCreate(savedInstanceState);
     }
 }

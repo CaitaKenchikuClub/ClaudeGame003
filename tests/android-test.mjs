@@ -50,16 +50,20 @@ const browser = await chromium.launch();
 const HOOK = "window.__g=()=>({running,paused,cd,contOpen,contBusy});window.__score=v=>{score=v;};window.__die=()=>{lives=1;items.push({type:'broc',x:5,y:GROUND-1,vx:0,vy:100,rot:0,vr:0,size:30});};";
 // stub of what the Capacitor runtime injects on Android (window.Capacitor + Plugins.App / Plugins.Toast)
 const NATIVE = () => {
-  window.__toasts = []; window.__exits = 0; window.__audio = 0;
-  const AC = window.AudioContext; window.AudioContext = function (...a) { window.__audio++; return new AC(...a); };   // counts when sound starts
+  window.__toasts = []; window.__exits = 0; window.__audio = 0; window.__vol = window.__vol ?? 8;
+  window.__setVol = n => { window.__vol = n; window.__volFn && window.__volFn({ level: n, max: 15 }); };
+  const AC = window.AudioContext; window.AudioContext = function (...a) { window.__audio++; return (window.__ac = new AC(...a)); };   // counts when sound starts
   window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: {
     App: { addListener(ev, fn) { if (ev === 'backButton') window.__back = fn; return Promise.resolve({ remove() {} }); }, exitApp() { window.__exits++; return Promise.resolve(); } },
     Toast: { show(o) { window.__toasts.push(o.text); return Promise.resolve(); } },
+    // the phone's media volume (MediaVolumePlugin.java); window.__setVol(n) is the player pressing the volume buttons
+    MediaVolume: { get() { return Promise.resolve({ level: window.__vol, max: 15 }); }, addListener(ev, fn) { if (ev === 'change') window.__volFn = fn; return Promise.resolve({ remove() {} }); } },
   } };
 };
-async function open(setup) {
+async function open(setup, pre) {   // pre runs before setup (e.g. the starting media volume)
   const ctx = await browser.newContext({ ...devices['Pixel 7'] });
   await ctx.addInitScript(() => { window.open = () => null; });
+  if (pre) await ctx.addInitScript(pre);
   if (setup) await ctx.addInitScript(setup);
   const page = await ctx.newPage(), errors = [], external = [];
   page.on('pageerror', e => errors.push(e.message));
@@ -190,6 +194,37 @@ const audio = p => p.evaluate(() => window.__audio);
   await back(page); await back(page);
   check('result screen: back twice closes the app (toast first)', (await toasts(page)) === 3 && (await exits(page)) === 1);
   check('no page errors', errors.length === 0, errors.join(' | '));
+  await ctx.close();
+}
+
+/* ===== 5. phone's media volume 0 → the game's sound engine stays stopped ===== */
+{
+  const { ctx, page, errors } = await open(NATIVE, () => { window.__vol = 0; });
+  const st = () => page.evaluate(() => window.__ac ? window.__ac.state : 'none');
+  const setHidden = on => page.evaluate(on => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => on }); document.dispatchEvent(new Event('visibilitychange')); }, on);
+  await page.tap('#intro'); await page.waitForTimeout(700);
+  await page.tap('#overlay .card h1'); await page.waitForTimeout(200);
+  check('volume 0: the first tap on the title does not start the sound engine', (await st()) === 'suspended');
+  await page.tap('#start'); await page.waitForTimeout(400);
+  check('volume 0: playing keeps it stopped', (await st()) === 'suspended' && (await g(page)).running);
+  await page.evaluate(() => window.__setVol(5)); await page.waitForTimeout(200);
+  check('volume raised: the sound starts', (await st()) === 'running');
+  await page.evaluate(() => window.__setVol(0)); await page.waitForTimeout(200);
+  check('volume back to 0: the sound engine stops', (await st()) === 'suspended');
+  await setHidden(true); await page.waitForTimeout(100); await setHidden(false); await page.waitForTimeout(300);
+  check('return from the background at volume 0: stays stopped', (await st()) === 'suspended');
+  await page.evaluate(() => { window.__vol = 6; }); await setHidden(true); await page.waitForTimeout(100); await setHidden(false); await page.waitForTimeout(300);
+  check('return from the background after the volume was raised meanwhile: the sound restarts', (await st()) === 'running');
+  await page.tap('#menuX').catch(() => {}); await page.waitForTimeout(200);
+  if (await visible(page, '#menu')) await back(page);
+  await page.evaluate(() => window.__setVol(0)); await page.waitForTimeout(100);
+  await page.evaluate(() => window.__die()); await page.waitForTimeout(400);
+  await page.tap('#contAd'); await page.waitForTimeout(300);
+  await page.waitForTimeout(5000); await page.tap('.ad-house-close'); await page.waitForTimeout(400);
+  check('after an ad at volume 0: stays stopped (3-2-1 countdown silent)', (await st()) === 'suspended' && (await g(page)).cd > 0);
+  await page.evaluate(() => window.__setVol(4)); await page.waitForTimeout(200);
+  check('volume raised after the ad: the sound starts', (await st()) === 'running');
+  check('no page errors (media volume)', errors.length === 0, errors.join(' | '));
   await ctx.close();
 }
 
