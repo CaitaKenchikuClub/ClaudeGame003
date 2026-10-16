@@ -98,7 +98,13 @@ button.sub{background:var(--card);color:var(--ink)}
 .cont .foot button{min-width:220px}
 #shareBtn{font-size:16px;padding:8px 22px;box-shadow:0 3px 0 var(--ink)}
 .cont button.sub{font-size:15px}
+/* app only: club logo shown silently before the title (fades in from the white launch screen; tap to skip) */
+#intro{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:#fff;transition:background-color .6s,opacity .5s}
+#intro img{width:min(88vw,560px);height:auto;opacity:0;transition:opacity .8s}
+#intro.show{background:#eef8d0}#intro.show img{opacity:1}#intro.out{opacity:0;pointer-events:none}
 </style>
+<div id="intro" hidden><img src="assets/img/kenchikubu-logo.webp" alt="けんちくぶ！"></div>
+<script>if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())document.getElementById('intro').hidden=false;</script>
 
 <div class="wrap">
   <div class="hud">
@@ -788,7 +794,7 @@ $('shareBtn').onclick=()=>{
 };
 // the banner is only shown when the title / result card still fits below it (otherwise the game screen wins)
 const roomFor=px=>stage.clientHeight-overlay.querySelector('.card').offsetHeight-16>=px;
-const showBanner=()=>{if(!running&&!contOpen&&!shareOpen&&!overlay.hidden&&menu.hidden&&roomFor(74))ADS.showBanner(stage);};   // 74 = 12 + 50 (smallest banner) + 12
+const showBanner=()=>{if($('intro').hidden&&!running&&!contOpen&&!shareOpen&&!overlay.hidden&&menu.hidden&&roomFor(74))ADS.showBanner(stage);};   // 74 = 12 + 50 (smallest banner) + 12
 ADS.onBannerSpace(px=>{document.documentElement.style.setProperty('--ad-space',px+'px');if(px&&!roomFor(px))ADS.hideBanner();});
 ADS.init().then(showBanner);
 addEventListener('resize',showBanner);
@@ -797,7 +803,7 @@ for(const [id,k] of [['volBgm','bgm'],['volSe','se']]){
   el.oninput=()=>{$(id+'Out').textContent=el.value;SND.setVol(k,el.value/100);};
   if(k==='se')el.onchange=()=>SND.fx('catch');   // preview the new effect volume
 }
-const firstGesture=e=>{if(e.target.closest&&e.target.closest('#snd'))return;
+const firstGesture=e=>{if(e.target.closest&&e.target.closest('#snd,#intro'))return;   // the logo screen stays silent
   removeEventListener('pointerdown',firstGesture,true);removeEventListener('keydown',firstGesture,true);
   if(SND.wake()&&!running)SND.play('menu');};
 addEventListener('pointerdown',firstGesture,true);addEventListener('keydown',firstGesture,true);
@@ -809,8 +815,17 @@ addEventListener('keydown',e=>{if(e.key==='Escape'){menu.hidden?openMenu():close
 addEventListener('keyup',e=>{keys[e.key]=false});
 /* ---------- Android back button (Capacitor app only; the web version never registers it) ---------- */
 const NAT=window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()?Capacitor.Plugins:null;
+/* club logo before the title (app only): silent, about 3 s, tap or back to skip */
+const intro=$('intro');let introT=0;
+function introEnd(){if(intro.hidden||intro.classList.contains('out'))return;clearTimeout(introT);intro.classList.add('out');setTimeout(()=>{intro.hidden=true;showBanner();},500);}
+if(!intro.hidden){
+  const go=()=>{intro.classList.add('show');introT=setTimeout(introEnd,2600);},img=intro.querySelector('img');
+  img.decode?img.decode().then(go,go):go();
+  intro.addEventListener('click',introEnd);   // click, not pointerdown, so the tap cannot fall through to はじめる
+}
 let backT=0;   // time of the last back press on the title / result screen (press twice within 2 s to quit)
 function onBack(){
+  if(!intro.hidden){introEnd();return;}
   if(contBusy)return;   // an ad is on screen
   if(shareOpen){window.Share.close();return;}
   if(!menu.hidden){$('menuMain').hidden?showConfirm(false):closeMenu();return;}   // retry confirm / licenses → menu → game
