@@ -49,7 +49,7 @@ page.on('response', r => { if (r.status() >= 400 && !r.url().endsWith('favicon.i
 await page.goto(BASE + 'index.html', { waitUntil: 'load' });
 await page.waitForTimeout(800);
 check('title', (await page.title()) === 'ブロッ校長！');
-const imgs = await page.evaluate(() => [...document.images].map(i => i.complete && i.naturalWidth > 0));
+const imgs = await page.evaluate(() => [...document.images].filter(i => !i.closest('#intro')).map(i => i.complete && i.naturalWidth > 0));
 await page.evaluate(() => document.fonts.ready);
 const loadedFonts = await page.evaluate(() => [...new Set([...document.fonts].filter(f => f.status === 'loaded').map(f => f.family.replace(/["']/g, '') + ' ' + f.weight))].sort().join(', '));
 check('bundled fonts loaded (Dela Gothic One 400, M PLUS Rounded 1c 500/800)', loadedFonts === 'Dela Gothic One 400, M PLUS Rounded 1c 500, M PLUS Rounded 1c 800', loadedFonts);
@@ -68,6 +68,7 @@ check('PWA: start_url / scope / id resolve to the sub-directory', parsed.startUr
 check('PWA: standalone + portrait, icons resolve under the sub-directory', manJson.display === 'standalone' && manJson.orientation === 'portrait' && (parsed.icons || []).length === 3 && parsed.icons.every(i => i.url.startsWith(BASE + 'assets/icons/')), (parsed.icons || []).map(i => i.url).join(' '));
 check('in-game BGM file is downloaded (assets/audio/bgm-game.mp3)', bgm.includes(200), bgm.join(','));
 check('4 character images loaded', imgs.length === 4 && imgs.every(Boolean));
+check('web: the app-only club logo is not downloaded', await page.evaluate(() => !document.querySelector('#intro img').getAttribute('src') && !performance.getEntriesByType('resource').some(e => e.name.includes('kenchikubu-logo'))));
 check('start overlay visible', await page.evaluate(() => !document.getElementById('overlay').hidden));
 
 await page.tap('#start');

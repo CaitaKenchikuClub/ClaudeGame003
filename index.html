@@ -103,8 +103,8 @@ button.sub{background:var(--card);color:var(--ink)}
 #intro img{width:min(88vw,560px);height:auto;opacity:0;transition:opacity .8s}
 #intro.show{background:#eef8d0}#intro.show img{opacity:1}#intro.out{opacity:0;pointer-events:none}
 </style>
-<div id="intro" hidden><img src="assets/img/kenchikubu-logo.webp" alt="けんちくぶ！"></div>
-<script>if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())document.getElementById('intro').hidden=false;</script>
+<div id="intro" hidden><img data-src="assets/img/kenchikubu-logo.webp" alt="けんちくぶ！"></div>
+<script>if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()){const e=document.getElementById('intro');e.hidden=false;e.firstChild.src=e.firstChild.dataset.src;}   // the web version never downloads the logo</script>
 
 <div class="wrap">
   <div class="hud">
