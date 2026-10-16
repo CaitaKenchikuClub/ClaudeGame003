@@ -82,6 +82,7 @@ const exits = p => p.evaluate(() => window.__exits);
   check('www/: every file the game asks for is bundled', missing.length === 0, missing.join(','));
   check('www/: no request leaves the app (works offline)', external.length === 0, external.join(','));
   check('web: no back-button listener without Capacitor', await page.evaluate(() => window.__back === undefined));
+  check('web: app-only license entries stay hidden', await page.evaluate(() => document.getElementById('licApp').hidden && document.getElementById('licApp2').hidden));
   await ctx.close();
 }
 
@@ -106,7 +107,9 @@ const exits = p => p.evaluate(() => window.__exits);
   check('playing: back opens the pause menu', (await visible(page, '#menu')) && (await g(page)).paused);
   await page.tap('#retry'); await page.waitForTimeout(100); await back(page);
   check('retry confirmation: back returns to the menu', (await visible(page, '#menuMain')) && !(await visible(page, '#menuConfirm')));
-  await page.tap('#licBtn'); await page.waitForTimeout(100); await back(page);
+  await page.tap('#licBtn'); await page.waitForTimeout(100);
+  check('licenses: Capacitor / Apache notices listed in the app', (await visible(page, '#licApp')) && (await visible(page, '#licApp2')));
+  await back(page);
   check('licenses: back returns to the menu', (await visible(page, '#menuMain')) && !(await visible(page, '#menuLicense')));
   await back(page); await page.waitForTimeout(100);
   const s = await g(page);

@@ -177,6 +177,16 @@ button.sub{background:var(--card);color:var(--ink)}
               <p>Copyright 2016 The Rounded M+ Project Authors.<br>SIL Open Font License, Version 1.1</p>
               <details><summary>ライセンス全文</summary><pre data-src="assets/fonts/MPLUSRounded1c/OFL.txt"></pre></details>
             </div>
+            <div id="licApp" hidden>
+              <h3>Capacitor とプラグイン</h3>
+              <p>Copyright (c) 2017-present Drifty Co. / Copyright 2020-present Ionic<br>MIT License</p>
+              <details><summary>ライセンス全文</summary><pre data-src="assets/licenses/capacitor-MIT.txt"></pre></details>
+            </div>
+            <div id="licApp2" hidden>
+              <h3>AndroidX、Kotlin、Apache Cordova など</h3>
+              <p>Copyright The Android Open Source Project ほか<br>Apache License, Version 2.0</p>
+              <details><summary>ライセンス全文</summary><pre data-src="assets/licenses/Apache-2.0.txt"></pre></details>
+            </div>
             <p>絵文字（💚 など）は端末に搭載されているフォントで表示しています。</p>
           </div>
         </div>
@@ -810,6 +820,7 @@ function onBack(){
   backT=now;if(NAT.Toast)NAT.Toast.show({text:'もう一度押すとアプリを終了します',duration:'short'}).catch(()=>{});
 }
 if(NAT&&NAT.App)NAT.App.addListener('backButton',onBack);
+if(NAT)$('licApp').hidden=$('licApp2').hidden=false;   // libraries bundled only in the app
 addEventListener('resize',resize);
 resize();P.x=W/2;
 items=[{type:'broc',x:W*.18,y:H*.2,vy:0,rot:-.3,vr:0,size:30},{type:'gold',x:W*.82,y:H*.14,vy:0,rot:.2,vr:0,size:30},{type:'cuke',x:W*.8,y:H*.45,vy:0,rot:.6,vr:0,size:30}];
