@@ -1,6 +1,6 @@
 # 結果共有（シェア）の仕組みと設定
 
-最終更新：2026-10-16（Web 版まで実装・確認。Android アプリ版は共有プラグインの組み込み・実機確認が未実施）
+最終更新：2026-10-16（Web 版まで実装・確認。Android アプリ版は共有プラグインを組み込み済み、実機確認は未実施）
 
 ## 1. 何ができるか
 結果画面（ごちそうさま!）の「もう一回」の下にある **［結果をシェア］** を押すと、共有用の画像をその場で作り、プレビュー画面を開く。
@@ -38,7 +38,7 @@ SCORE: {スコア}
 - 画像のレイアウト（位置・大きさ）は `share.js` の `renderResultImage` にある。
 
 ## 5. Android アプリ化（Capacitor 導入時）にやること
-1. `npm i @capacitor/share@8 @capacitor/filesystem@8` → `npx cap sync`（2026-10-16 時点で share 8.0.3、filesystem 8.1.5）
+1. ✅ 済み（2026-10-16）：`@capacitor/share` 8.0.3・`@capacitor/filesystem` 8.1.5 を `package.json` に入れた。`npm run sync` でアプリに反映される
 2. `share.js` はこの2つのプラグインがあれば自動で使う：画像を `CACHE`（アプリのキャッシュ）の `share/` に書き出し、`Share.share({ text, files: [uri] })` で共有シートを開く。
 3. 実機で確認する（**まだ確認していない**）：
    - 共有シートが開き、X・LINE・Instagram などに画像が渡るか。テキストも一緒に渡るか（アプリによっては画像だけになる）

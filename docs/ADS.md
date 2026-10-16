@@ -71,6 +71,7 @@
 
 ## 6. フェーズ2（Capacitor 導入時）にやること
 
+0. Capacitor 本体と Android プロジェクトは導入済み（2026-10-16。`docs/ANDROID.md`）。AdMob を入れるまで、アプリ版の広告はハウス広告になる。
 1. `npm i @capacitor-community/admob@8`（2026-10-15 時点で 8.2.1。Capacitor 8.5 以上、iOS 15 以上、Android API 24 以上）→ `npx cap sync`
 2. アプリ ID を設定する（開発中は Google のテスト用アプリ ID）。
    - Android：`AndroidManifest.xml` の `<application>` に `com.google.android.gms.ads.APPLICATION_ID`（テスト用 `ca-app-pub-3940256099942544~3347511713`）
