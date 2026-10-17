@@ -69,7 +69,7 @@ GAME_SPEC.md              ゲーム仕様書
 - 広告や保存データの扱いを変えたら、PrivacyPolicy 側の本文も更新する。
 
 ## 変えてはいけない値（保存データの互換性）
-- `localStorage` のキー `broc-best`（ベストスコア）、`broc-mute`（消音）、`broc-vol-bgm`／`broc-vol-se`（音量）。名前を変えると、プレイヤーの記録や設定が消える。
+- `localStorage` のキー `broc-best`（ベストスコア）、`broc-mute`（消音）、`broc-vol-bgm`／`broc-vol-se`（音量）、`broc-banner-h`（アプリ版のバナーの高さ。カードがずれないように使う）。名前を変えると、プレイヤーの記録や設定が消える。
 - 画像のパスは `assets/img/...` の**相対パス**のまま使う（`/assets/...` のような絶対パスは GitHub Pages のサブパス `/ClaudeGame003/` で壊れる）。
 
 ## 広告のルール（詳細は docs/ADS.md）
