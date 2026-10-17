@@ -56,8 +56,11 @@ const shot = (page, name) => page.screenshot({ path: path.join(OUT, name), type:
   await page.evaluate(() => { window.__g.score = 46; });
   await page.waitForTimeout(400);
   await shot(page, 'screenshot-2.png');   // playing
-  await page.waitForTimeout(3500);
-  await shot(page, 'screenshot-3.png');   // playing, a little later
+  await page.waitForTimeout(3000);
+  await page.evaluate(() => { const g = window.__g, it = (type, x, y, vy, rot) => ({ type, x, y, vx: 0, vy, rot, vr: .8, size: 30 });   // a gold broccoli and a cucumber in the picture
+    g.items.push(it('gold', g.W * .22, 150, 230, .4), it('cuke', g.W * .8, 250, 200, 2.2)); });
+  await page.waitForTimeout(300);
+  await shot(page, 'screenshot-3.png');   // playing: gold broccoli (+5) and cucumber (−1)
   await page.evaluate(() => { clearInterval(window.__auto); window.__g.score = 152; });
   for (let i = 0; i < 200 && !(await page.evaluate(() => !document.getElementById('overlay').hidden || !document.getElementById('cont').hidden)); i++) {
     await page.evaluate(() => { const g = window.__g; g.P.target = g.items.length ? g.items[0].x + 200 : 0; }); await page.waitForTimeout(100); }
