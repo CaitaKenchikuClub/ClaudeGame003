@@ -47,7 +47,8 @@ capacitor.config.json     アプリ名・Application ID（com.caitakenchikuclub.
 scripts/build-web.mjs     アプリに入れるファイルだけを www/ に集める（www/ は git の管理対象外）。ゲームのファイルを足したら WEB_FILES にも足す
 scripts/make-app-icons.mjs アプリのアイコン・スプラッシュを作る（npm run icons）
 android/                  Android Studio で開く Android プロジェクト（Capacitor が生成。縦画面固定・白い起動画面に角丸アイコン）。AdMob のアプリ ID は app/build.gradle（debug＝テスト用、release＝本番）。BuildInfoPlugin.java は debug／release を ads.js に返す
-assets/licenses/          アプリ版で使うライブラリのライセンス全文（Capacitor の MIT、Apache 2.0）
+assets/licenses/          アプリ版で使うライブラリのライセンス全文（Capacitor の MIT、Apache 2.0、android-third-party.txt＝本番版に入る全ライブラリの一覧とその他の全文）
+scripts/make-android-licenses.mjs  android-third-party.txt を本番版のビルドから作る（ライブラリを変えたら実行してコミット）
 tests/android-test.mjs    アプリ版の自動テスト（www/ の中身・オフライン起動・戻るボタン）
 docs/ANDROID.md           Android アプリ版の仕組み・オーナーの Mac での手順・確認状況
 GAME_SPEC.md              ゲーム仕様書
