@@ -9,6 +9,7 @@
  * - production: AdMob の管理画面で作った本番の広告ユニット ID。
  *   アプリ ID（ca-app-pub-...~...）は android/app/build.gradle の ADMOB_APP_ID_PRODUCTION に書く。
  * - consentDebug: 開発版で、日本にいても EU にいるときの同意画面（UMP）を試すための設定（普段は eea: false）。
+ * - adsense: Web 版のバナー広告（AdSense）。bannerSlot に広告ユニットの番号を入れると、タイトル・結果画面に出る。
  * - houseAd: Web 版と、アプリで AdMob の広告が出せないときのコンティニュー用の自社広告。
  *   画像（縦長でも横長でもよい。比率を保って表示する）とリンク先を差し替えるだけで変更できる。
  */
@@ -31,6 +32,13 @@ window.ADS_CONFIG = {
       android: { banner: 'ca-app-pub-9985841758256257/9192571028', rewarded: 'ca-app-pub-9985841758256257/3431968723' },
       ios:     { banner: '', rewarded: '' },
     },
+  },
+
+  // Web 版（ブラウザ版）の AdSense。アプリでは使わない（アプリは上の AdMob）。
+  // bannerSlot が空のあいだは何もしない。AdSense の審査に通ったら「ディスプレイ広告」ユニットを作り、その data-ad-slot の数字を入れる。
+  adsense: {
+    client: 'ca-pub-9985841758256257',
+    bannerSlot: '',
   },
 
   banner: {

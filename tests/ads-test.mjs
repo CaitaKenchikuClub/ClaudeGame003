@@ -303,6 +303,54 @@ await rewardedCase('?ads=mock&dup=1', 'reward', true, 'mock rewarded: duplicated
   await ctx.close();
 }
 
+/* ===== 2c. Web version with AdSense (ADS_CONFIG.adsense filled in; the AdSense script itself is blocked here) ===== */
+async function openAdSense({ app = false, slot = '1234567890' } = {}) {
+  const ctx = await browser.newContext({ ...devices['iPhone 13'] });
+  if (app) await ctx.addInitScript(() => { window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: {} }; });
+  const page = await ctx.newPage(), errors = [], asReq = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.route(/googlesyndication\.com/, r => { asReq.push(r.request().url()); r.abort(); });
+  await page.route('**/ads-config.js', async route => {
+    const body = await (await route.fetch()).text();
+    route.fulfill({ contentType: 'text/javascript', body: body + `\nwindow.ADS_CONFIG.adsense.bannerSlot = ${JSON.stringify(slot)};` });
+  });
+  await page.route('**/index.html*', async route => {
+    const body = await (await route.fetch()).text();
+    route.fulfill({ contentType: 'text/html; charset=utf-8', body: body.replace('function loop(now){', HOOK + 'function loop(now){') });
+  });
+  await page.goto(BASE + 'index.html', { waitUntil: 'load' }); await page.evaluate(() => document.fonts.ready); await page.waitForTimeout(700);
+  return { ctx, page, errors, asReq };
+}
+{
+  const { ctx, page, errors } = await (async () => { const o = await open(); return o; })();
+  check('web without an AdSense ad unit: no AdSense script, no banner (as before)', !(await page.evaluate(() => !!document.querySelector('script[src*="googlesyndication"], .ad-web-banner'))) && (await adSpace(page)) === '0px');
+  await ctx.close();
+}
+{
+  const { ctx, page, errors, asReq } = await openAdSense();
+  const ins = await page.evaluate(() => { const i = document.querySelector('.ad-web-banner ins.adsbygoogle'); return i && { client: i.dataset.adClient, slot: i.dataset.adSlot, w: i.offsetWidth, h: i.offsetHeight, test: i.dataset.adtest || '' }; });
+  check('web + AdSense: the AdSense script is requested with the publisher ID', asReq.some(u => u.includes('adsbygoogle.js?client=ca-pub-9985841758256257')), asReq.join(' | '));
+  check('web + AdSense: a 320x50 banner unit is placed on the title screen', !!ins && ins.client === 'ca-pub-9985841758256257' && ins.slot === '1234567890' && ins.w === 320 && ins.h === 50, JSON.stringify(ins));
+  check('web + AdSense: its space (50 + 2 x 12) is reserved before the ad arrives', (await adSpace(page)) === '74px');
+  const b = await rect(page, '.ad-web-banner'), hud = await rect(page, '.hud'), card = await rect(page, '#overlay .card');
+  check('web + AdSense: banner sits below the HUD and above the title card', b.top >= hud.bottom + 11 && b.bottom + 11 <= card.top, `hud ${hud.bottom} banner ${b.top}-${b.bottom} card ${card.top}`);
+  await page.tap('#start'); await page.waitForTimeout(300);
+  check('web + AdSense: playing removes the ad from the page (not just hidden)', !(await page.evaluate(() => !!document.querySelector('.ad-web-banner, ins.adsbygoogle'))) && (await adSpace(page)) === '0px');
+  await page.evaluate(() => window.__score(3)); await dieToContinue(page);
+  check('web + AdSense: no banner on the continue card', !(await page.evaluate(() => !!document.querySelector('.ad-web-banner'))));
+  await page.tap('#contEnd'); await page.waitForTimeout(400);
+  check('web + AdSense: a new banner unit on the result screen', (await page.evaluate(() => document.querySelectorAll('.ad-web-banner ins.adsbygoogle').length)) === 1);
+  await page.tap('#menuBtn'); await page.waitForTimeout(200);
+  check('web + AdSense: no banner while the settings menu is open', !(await page.evaluate(() => !!document.querySelector('.ad-web-banner'))));
+  check('no page errors (AdSense)', errors.length === 0, errors.join(' | '));
+  await ctx.close();
+}
+{
+  const { ctx, page, asReq } = await openAdSense({ app: true });
+  check('app: AdSense is never loaded, even when configured (the app uses AdMob)', asReq.length === 0 && !(await page.evaluate(() => !!document.querySelector('.ad-web-banner'))), asReq.join(' | '));
+  await ctx.close();
+}
+
 /* ===== Android app: test / production switch and UMP order (Capacitor + AdMob plugin are stubbed) ===== */
 const PROD = { banner: 'ca-app-pub-1111111111111111/2222222222', rewarded: 'ca-app-pub-1111111111111111/3333333333' };
 const TEST = { banner: 'ca-app-pub-3940256099942544/9214589741', rewarded: 'ca-app-pub-3940256099942544/5224354917' };

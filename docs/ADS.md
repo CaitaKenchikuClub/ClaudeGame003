@@ -6,10 +6,10 @@
 
 | 画面 | バナー広告 | リワード広告（コンティニュー） |
 |---|---|---|
-| タイトル画面 | ○（アプリ版のみ。カードが収まる画面の大きさのときだけ） | — |
+| タイトル画面 | ○（アプリ版。Web 版は AdSense の広告ユニットを設定したら。カードが収まる画面の大きさのときだけ） | — |
 | **プレイ中・ポーズ中** | **×（出さない）** | — |
 | ライフ0の確認カード | ×（出さない） | 「広告を見てライフ＋1」で表示 |
-| 結果画面（ごちそうさま!） | ○（アプリ版のみ。条件は同上） | — |
+| 結果画面（ごちそうさま!） | ○（条件は同上） | — |
 | 設定メニューを開いている間 | ×（スライダーなどの近くに出さない） | — |
 
 - **プレイ中にバナーを出さない理由**：このゲームは画面のどこでもドラッグして操作できるため、バナーと操作領域が隣り合い、誤タップの危険があるため（AdMob の実装ガイドラインの「操作部分の近くに広告を置かない」に従う）。
@@ -43,7 +43,7 @@
 |---|---|---|
 | アプリ版（Capacitor）で AdMob が使える | AdMob アンカー アダプティブ バナー | AdMob リワード広告。読み込めていない・表示に失敗したときはハウス広告 |
 | アプリ版で AdMob が使えない（同意が得られない・SDK エラー・本番 ID が未設定） | なし | ハウス広告 |
-| **Web版（GitHub Pages）** | なし | **ハウス広告** |
+| **Web版（GitHub Pages）** | AdSense の固定サイズのバナー（320×50。幅768px以上は728×90）。`ads-config.js` の `adsense.bannerSlot` が空のあいだはなし | **ハウス広告**（H5 Games Ads が承認されたら、そのリワード広告にする予定） |
 | Web版で URL に `?ads=mock` を付けたとき（開発用） | 模擬バナー | 模擬リワード（AdMob と同じ流れで、成功・キャンセル・失敗を選べる） |
 
 **ハウス広告**：けんちくぶの告知画像（`ads-config.js` の `houseAd`）を全画面に表示（比率を保って画面内に収める）。画像をタップするとリンク先を開く。5秒たつと右上に × が出て、閉じるとコンティニューできる。
@@ -117,8 +117,20 @@
 - リワード広告を途中で閉じたとき・機内モードのとき・広告の途中でホームに戻ったときの実機での動き（自動テストでは確認済み）
 - ハウス広告のリンクが外部ブラウザで開くか（`@capacitor/browser` は入れていない）
 
+## 7. Web 版の AdSense（2026-10-17 準備。審査中）
+- サイト `caitakenchikuclub.github.io` で AdSense の審査中（コード スニペットで申請。`ads.txt` と審査用の文章ページは別リポジトリ CaitaKenchikuClub.github.io）。
+- `ads.js` の AdSense の処理は、**Web 版でだけ**動く（アプリでは AdSense を読み込まない。アプリの中で AdSense を出すのは規約違反のため）。`ads-config.js` の `adsense.bannerSlot` が空のあいだは何もしない（今の状態）。
+- 審査に通ったら：AdSense の「広告」→「広告ユニットごと」→「ディスプレイ広告」でユニットを作り（サイズは「固定サイズ」でも「レスポンシブ」でもよい。表示する大きさは ads.js が 320×50／728×90 に決める）、コードの `data-ad-slot="…"` の数字を `adsense.bannerSlot` に入れる。
+- バナーはタイトル・結果画面だけ。プレイ中・確認カード・設定メニュー・シェア画面では出さない。AdSense は広告を隠すことを認めていないので、出さないときは広告をページから取り除き、次のタイトル・結果画面で新しく読み込む。
+- 大きさが決まっているので、余白（50＋12×2＝74px など）を先に取り、カードはずれない。
+- 自分のパソコン（localhost）で試すときは、自動でテスト表示（`data-adtest="on"`）になる。**公開ページの広告を自分でクリックしない。**
+- **自動広告はオフのまま**にする（ゲームの画面に勝手に広告が入らないように）。
+- 同意（EEA など）：AdSense の「プライバシーとメッセージ」で作った GDPR メッセージは、AdSense のスクリプトと一緒に表示される。プライバシーポリシーはウェブサイト用（https://caitakenchikuclub.github.io/privacy/ ）。
+- コンティニュー（リワード広告）：H5 Games Ads（Ad Placement API）に申し込み、**承認されてから**組み込む。承認前に `adBreak` などのコードを入れない。
+- 自動テスト：`node tests/ads-test.mjs` の 2c（AdSense のスクリプトは遮断して、読み込み・配置・取り除き・アプリでは読まないことを確認）。
+
 ### 6-4. ストア公開に向けて（AdMob・Google Play の管理画面）
-- プライバシーポリシー：リポジトリ PrivacyPolicy の `burokocho/index.html`（公開 URL https://caitakenchikuclub.github.io/PrivacyPolicy/burokocho/ 。PrivacyPolicy の main にマージすると公開される）。設定メニューの「プライバシーポリシー」からも開ける。
+- プライバシーポリシー：リポジトリ PrivacyPolicy の `burokocho/index.html`（公開 URL https://caitakenchikuclub.github.io/PrivacyPolicy/burokocho/ 。PrivacyPolicy の main にマージすると公開される）。アプリ版の設定メニューの「プライバシーポリシー」からも開ける。Web 版の設定メニューは、ウェブサイト用のポリシー（https://caitakenchikuclub.github.io/privacy/ 。リポジトリ CaitaKenchikuClub.github.io の `privacy/`。AdSense の同意メッセージもこの URL）を開く（2026-10-17）。
 - AdMob の「プライバシーとメッセージ」で、欧州規則（GDPR）のメッセージを作成・公開する（プライバシーポリシーの URL は上のもの）。
 - AdMob の「ブロックの管理」で、広告コンテンツの評価の上限を G か PG にする（おすすめ）。
 - `app-ads.txt`（2026-10-17 設置済み）：https://caitakenchikuclub.github.io/app-ads.txt 。中身は `google.com, pub-9985841758256257, DIRECT, f08c47fec0942fa0`。リポジトリ **CaitaKenchikuClub.github.io**（GitHub Pages のユーザーサイト。トップは けんちくぶ！の紹介ページ）に置いている。Play Console の「ウェブサイト」欄には https://caitakenchikuclub.github.io/ を登録する（AdMob はこのサイトの一番上の app-ads.txt を読みに行く）。

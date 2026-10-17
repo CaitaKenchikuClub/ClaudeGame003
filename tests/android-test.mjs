@@ -162,6 +162,7 @@ const audio = p => p.evaluate(() => window.__audio);
   await page.tap('#retry'); await page.waitForTimeout(100); await back(page);
   check('retry confirmation: back returns to the menu', (await visible(page, '#menuMain')) && !(await visible(page, '#menuConfirm')));
   await page.tap('#licBtn'); await page.waitForTimeout(100);
+  check('app: the privacy policy link opens the app policy', (await page.evaluate(() => document.getElementById('privacyLink').href)) === 'https://caitakenchikuclub.github.io/PrivacyPolicy/burokocho/');
   check('licenses: Capacitor / Apache notices listed in the app', (await visible(page, '#licApp')) && (await visible(page, '#licApp2')) && (await visible(page, '#licApp3')));
   await page.evaluate(() => document.querySelectorAll('#licApp details, #licApp3 details').forEach(d => { d.open = true; })); await page.waitForTimeout(500);
   const lic = await page.evaluate(() => [...document.querySelectorAll('#licApp pre, #licApp3 pre')].map(p => p.textContent));
