@@ -2,7 +2,7 @@
 
 ブロッ校長！（旧名：ブロッコリーキャッチ）に含まれる、または使用している第三者の著作物の一覧です。
 ストア審査（Google Play／App Store）やライセンス表示の確認に使います。
-最終更新：2026-10-16（Android アプリ版のライブラリ追加）
+最終更新：2026-10-17（Android アプリ版のライブラリ一覧を、本番版のビルドから確定）
 
 ## 1. アプリに同梱しているもの
 
@@ -72,19 +72,22 @@
 |---|---|---|---|
 | @capacitor/core・@capacitor/android（Capacitor） | 8.5.3 | MIT（Copyright (c) 2017-present Drifty Co.） | Web のゲームを Android アプリとして動かす |
 | @capacitor/app・@capacitor/toast | 8.1.2・8.0.1 | MIT（Copyright 2020-present Ionic） | 戻るボタン・終了確認のトースト |
-| @capacitor/share・@capacitor/filesystem | 8.0.3・8.1.5 | MIT（Copyright 2020-present Ionic／Copyright (c) 2025 Ionic） | 結果共有 |
+| @capacitor/share・@capacitor/filesystem（と、それが使う io.ionic.libs:ionfilesystem-android 1.1.1） | 8.0.3・8.1.5 | MIT（Copyright 2020-present Ionic／Copyright (c) 2025 Ionic） | 結果共有 |
 | @capacitor-community/admob | 8.2.1 | MIT（Copyright (c) 2021 Capacitor Community） | AdMob 広告（バナー・リワード）と同意管理 |
 | Google Mobile Ads SDK（com.google.android.gms:play-services-ads）、User Messaging Platform（com.google.android.ump） | 25.4.0・4.0.0 | Google の利用規約（Google Mobile Ads SDK の利用規約。オープンソースではない） | AdMob 広告・同意管理（UMP） |
-| AndroidX（appcompat・core・activity・fragment・coordinatorlayout・webkit・core-splashscreen）、Apache Cordova framework、Kotlin 標準ライブラリ・kotlinx-coroutines など、上のライブラリが使う Android の部品 | — | Apache License 2.0 | Capacitor の動作に必要 |
+| AndroidX（appcompat・core・activity・fragment・webkit・browser・work・room など）、Apache Cordova framework、Kotlin 標準ライブラリ・kotlinx-coroutines、Guava など、上のライブラリが使う部品 | — | Apache License 2.0 | Capacitor・AdMob の動作に必要 |
+| Checker Framework qualifiers（org.checkerframework:checker-qual） | 3.12.0 | MIT（Copyright 2004-present by the Checker Framework developers） | Guava が使う注釈 |
 
-- Google Mobile Ads SDK と UMP は、Google の規約に基づいて使用する。中に含まれるオープンソース部品の一覧は、ストア公開前に Android Studio で依存関係を確認して確定する。アプリ内の「ライセンス情報」には、使用していることを表示している（2026-10-16）。
-- アプリ内の「ライセンス情報」に、Capacitor（MIT 全文：`assets/licenses/capacitor-MIT.txt`）と Apache License 2.0（全文：`assets/licenses/Apache-2.0.txt`）を表示する（アプリ版だけ）。
-- 間接的に使われる部品の**完全な一覧**は、Android SDK のある環境（オーナーの Mac）で確定できる。ストア公開前に、Android Studio で依存関係を確認し、必要ならこの表とライセンス情報を更新する。
+**完全な一覧（2026-10-17 確定）**
+- 本番版（release）のビルドに入るライブラリは **83 件**。全件の名前・版・ライセンスは `assets/licenses/android-third-party.txt` の1章にある。このファイルは `scripts/make-android-licenses.mjs` が、Gradle の依存関係（`releaseRuntimeClasspath`）と各ライブラリの POM から作る。
+- ライセンスの内訳：Apache License 2.0 が 70 件、Google の Android Software Development Kit License が 11 件（play-services-ads などの Google Play 開発者サービスと UMP）、MIT が 2 件（checker-qual、ionfilesystem-android）。ionfilesystem-android は POM にライセンス名がないが、配布元（GitHub の ionic-team/ion-android-filesystem）の LICENSE で MIT（Copyright (c) 2025 Ionic）と確認した。
+- Google のライブラリ（Google Mobile Ads SDK・UMP など）は、中に含むオープンソース部品のライセンスを `third_party_licenses.txt` として同梱している。スクリプトはこれも集め、同じ文面は1つにまとめて `android-third-party.txt` の2章に入れる。主なもの：Apache 2.0（Dagger、Guava、Gson、ExoPlayer、Tink、Volley、Kotlin など）、MIT（Animal Sniffer、Checker Framework）、BSD（JSR 305、Protocol Buffers）。Kotlin の文面には、Kotlin が含む部品の表示（MPL など）も入っている。
+- アプリ内の「ライセンス情報」（アプリ版だけ）：Capacitor とプラグイン（MIT 全文：`assets/licenses/capacitor-MIT.txt`。AdMob プラグインの全文を 2026-10-17 に追加）、Apache License 2.0（全文：`assets/licenses/Apache-2.0.txt`）、Google Mobile Ads SDK・UMP（「アプリに含まれるライブラリの一覧と、ほかのライセンス全文」で `android-third-party.txt` を表示）。
+- **ライブラリを追加・更新したら**、オーナーの Mac で `node scripts/make-android-licenses.mjs`（`JAVA_HOME` に Java 21 を指定）を実行し、できたファイルをコミットする。
 - 開発時だけ使うもの：@capacitor/cli（MIT）、@capacitor/assets（MIT。アイコン生成。内部で sharp などを使う）。アプリには含まれない。
 
-## 2-2. フェーズ2（AdMob 導入時）に追加する予定のもの
-- **@capacitor-community/admob**（MIT License）と、それが組み込む **Google Mobile Ads SDK**・**User Messaging Platform（UMP）SDK**（Google の利用規約）。導入時に、ライセンス表示（アプリ内「ライセンス情報」）とストアのプライバシー申告を更新する。
-- 広告の配信により、アプリから Google に端末情報などが送られる（プライバシーポリシーに記載が必要）。Web版（GitHub Pages）は AdMob を読み込まず、外部への通信もない。
+## 2-2. 広告（AdMob）による通信
+- 広告の配信により、アプリから Google に端末情報などが送られる（プライバシーポリシーに記載済み）。Web版（GitHub Pages）は AdMob を読み込まず、外部への通信もない。
 
 ## 3. 開発時のみ使用（アプリには含まれない）
 - **Playwright**（Apache License 2.0）：`tests/smoke-test.mjs` の自動テストで使用。アプリには含まれない。
