@@ -53,13 +53,14 @@ const HOOK = "window.__g=()=>({running,paused,cd,contOpen,contBusy});window.__sc
 const NATIVE = () => {
   window.__toasts = []; window.__exits = 0; window.__audio = 0; window.__vol = window.__vol ?? 8;
   window.__setVol = n => { window.__vol = n; window.__volFn && window.__volFn({ level: n, max: 15 }); };
-  const AC = window.AudioContext; window.AudioContext = function (...a) { window.__audio++; return (window.__ac = new AC(...a)); };   // counts when sound starts
-  // loudness of what reaches the speaker at the moment the engine is stopped (the game must fade to silence first)
+  const AC = window.AudioContext; window.AudioContext = function (...a) { window.__audio++; return (window.__ac = new AC(...(window.__rate ? [{ sampleRate: window.__rate }] : a))); };   // counts when sound starts (window.__rate: as if the Mac's audio output ran at that rate)
+  // loudness of what reaches the speaker at the moment the engine is stopped (the game must fade to silence first).
+  // Only the last 40 ms count: the analyser holds 2048 samples, which at a low sample rate (16 kHz on a Bluetooth headset) reach back into the fade itself
   window.__peaks = [];
   const conn = AudioNode.prototype.connect;
   AudioNode.prototype.connect = function (d, ...r) { if (d instanceof AudioDestinationNode && !d.context.__an) { d.context.__an = d.context.createAnalyser(); conn.call(this, d.context.__an); } return conn.call(this, d, ...r); };
   const sus = AC.prototype.suspend;
-  AC.prototype.suspend = function () { if (this.__an && this.state === 'running') { const b = new Float32Array(this.__an.fftSize); this.__an.getFloatTimeDomainData(b); window.__peaks.push(Math.max(...b.map(Math.abs))); } return sus.call(this); };
+  AC.prototype.suspend = function () { if (this.__an && this.state === 'running') { const b = new Float32Array(this.__an.fftSize); this.__an.getFloatTimeDomainData(b); window.__peaks.push(Math.max(...b.subarray(b.length - Math.round(this.sampleRate * 0.04)).map(Math.abs))); } return sus.call(this); };
   window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: {
     App: { addListener(ev, fn) { if (ev === 'backButton') window.__back = fn; return Promise.resolve({ remove() {} }); }, exitApp() { window.__exits++; return Promise.resolve(); } },
     Toast: { show(o) { window.__toasts.push(o.text); return Promise.resolve(); } },
@@ -237,6 +238,17 @@ const audio = p => p.evaluate(() => window.__audio);
   await page.evaluate(() => window.__setVol(4)); await page.waitForTimeout(200);
   check('volume raised after the ad: the sound starts', (await st()) === 'running');
   check('no page errors (media volume)', errors.length === 0, errors.join(' | '));
+  await ctx.close();
+}
+{   // the same fade check with the audio output at 16 kHz (the test used to fail when the Mac played through a Bluetooth headset)
+  const { ctx, page } = await open(NATIVE, () => { window.__rate = 16000; });
+  await page.tap('#intro'); await page.waitForTimeout(700);
+  await page.tap('#start'); await page.waitForTimeout(1000);
+  const loud = await page.evaluate(async () => { const an = window.__ac.__an, b = new Float32Array(an.fftSize); let m = 0;
+    for (let i = 0; i < 8; i++) { an.getFloatTimeDomainData(b); m = Math.max(m, ...b.map(Math.abs)); await new Promise(r => setTimeout(r, 50)); } return m; });
+  await page.evaluate(() => { window.__peaks = []; window.__setVol(0); }); await page.waitForTimeout(300);
+  const peaks = await page.evaluate(() => window.__peaks), rate = await page.evaluate(() => window.__ac.sampleRate);
+  check('16 kHz audio output: also faded to silence before stopping', rate === 16000 && loud > 0.01 && peaks.length === 1 && peaks[0] < 0.005, `${rate} Hz: playing ${loud.toFixed(3)} → at stop ${peaks.map(v => v.toFixed(4))}`);
   await ctx.close();
 }
 
