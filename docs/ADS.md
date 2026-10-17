@@ -118,7 +118,7 @@
 - ハウス広告のリンクが外部ブラウザで開くか（`@capacitor/browser` は入れていない）
 
 ### 6-4. ストア公開に向けて（AdMob・Google Play の管理画面）
-- プライバシーポリシー：リポジトリ PrivacyPolicy の `burokocho/index.html`（公開 URL https://caitakenchikuclub.github.io/PrivacyPolicy/burokocho/ 。PrivacyPolicy の main にマージすると公開される）。設定メニューの「プライバシーポリシー」からも開ける。
+- プライバシーポリシー：リポジトリ PrivacyPolicy の `burokocho/index.html`（公開 URL https://caitakenchikuclub.github.io/PrivacyPolicy/burokocho/ 。PrivacyPolicy の main にマージすると公開される）。アプリ版の設定メニューの「プライバシーポリシー」からも開ける。Web 版の設定メニューは、ウェブサイト用のポリシー（https://caitakenchikuclub.github.io/privacy/ 。リポジトリ CaitaKenchikuClub.github.io の `privacy/`。AdSense の同意メッセージもこの URL）を開く（2026-10-17）。
 - AdMob の「プライバシーとメッセージ」で、欧州規則（GDPR）のメッセージを作成・公開する（プライバシーポリシーの URL は上のもの）。
 - AdMob の「ブロックの管理」で、広告コンテンツの評価の上限を G か PG にする（おすすめ）。
 - `app-ads.txt`（2026-10-17 設置済み）：https://caitakenchikuclub.github.io/app-ads.txt 。中身は `google.com, pub-9985841758256257, DIRECT, f08c47fec0942fa0`。リポジトリ **CaitaKenchikuClub.github.io**（GitHub Pages のユーザーサイト。トップは けんちくぶ！の紹介ページ）に置いている。Play Console の「ウェブサイト」欄には https://caitakenchikuclub.github.io/ を登録する（AdMob はこのサイトの一番上の app-ads.txt を読みに行く）。

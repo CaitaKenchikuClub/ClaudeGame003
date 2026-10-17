@@ -147,7 +147,7 @@ await page3.tap('#menuBtn'); await page3.waitForTimeout(100);
 const t1 = await T('t'); await page3.waitForTimeout(600);
 check('menu: opens and pauses the game', (await shown('menu')) && t1 === await T('t'));
 check('menu: no ゲームをやめる on the web (app only)', !(await shown('quit')));
-check('menu: privacy policy link opens the page in the PrivacyPolicy repository in a new tab', (await shown('privacyLink')) && JSON.stringify(await page3.evaluate(() => { const a = document.getElementById('privacyLink'); return [a.href, a.target]; })) === JSON.stringify(['https://caitakenchikuclub.github.io/PrivacyPolicy/burokocho/', '_blank']));
+check('menu (web): privacy policy link opens the website policy in a new tab', (await shown('privacyLink')) && JSON.stringify(await page3.evaluate(() => { const a = document.getElementById('privacyLink'); return [a.href, a.target]; })) === JSON.stringify(['https://caitakenchikuclub.github.io/privacy/', '_blank']));
 await page3.evaluate(() => { for (const [id, v] of [['volBgm', 40], ['volSe', 25]]) { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('input')); } });
 check('menu: BGM / SE volumes saved separately', JSON.stringify(await page3.evaluate(() => [localStorage.getItem('broc-vol-bgm'), localStorage.getItem('broc-vol-se')])) === '["0.4","0.25"]');
 await page3.tap('#retry');

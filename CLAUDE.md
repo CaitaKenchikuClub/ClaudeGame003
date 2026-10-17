@@ -67,7 +67,8 @@ GAME_SPEC.md              ゲーム仕様書
 
 ## プライバシーポリシー
 - 本文は別リポジトリ **PrivacyPolicy** の `burokocho/index.html` にある（このリポジトリには置かない。2026-10-16 移動）。公開 URL：https://caitakenchikuclub.github.io/PrivacyPolicy/burokocho/
-- 設定メニューの「プライバシーポリシー」（`#privacyLink`）、AdMob の同意メッセージ、Google Play はこの URL を使う。URL は変えない。
+- アプリ版の設定メニューの「プライバシーポリシー」（`#privacyLink`）、AdMob の同意メッセージ、Google Play はこの URL を使う。URL は変えない。
+- **Web 版（ブラウザ版）は別のポリシー**：別リポジトリ **CaitaKenchikuClub.github.io** の `privacy/index.html`（https://caitakenchikuclub.github.io/privacy/ 。AdSense・Cookie を含むウェブサイト全体用）。Web 版の `#privacyLink` と AdSense の同意メッセージはこの URL を使う（`index.html` の HTML はこの URL、アプリのときだけスクリプトでアプリ用に切り替える）。
 - 広告や保存データの扱いを変えたら、PrivacyPolicy 側の本文も更新する。
 
 ## 変えてはいけない値（保存データの互換性）
