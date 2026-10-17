@@ -13,6 +13,7 @@
  *   - AdMob through @capacitor-community/admob when running as a Capacitor app
  *   - a mock of that plugin for development: add ?ads=mock to the URL (same event flow as the real one)
  *   - the house ad (ADS_CONFIG.houseAd): web version, and in the app when no AdMob rewarded ad is ready
+ *   - Google AdSense banner on the title / result screens: web version only, once ADS_CONFIG.adsense is filled in
  * Any failure degrades quietly: no banner, and "continue" falls back to the house ad (or is not offered).
  * Test or production ads: Google's test ads unless the app is a release build (BuildInfo plugin in android/) with
  * production IDs set and ADS_CONFIG.forceTestAds off. Anything unknown means test ads.
@@ -123,8 +124,39 @@ function placeBanner(offset) {
   bannerOffset = offset;
   if (bannerState === 'none') go(); else admob.removeBanner().catch(() => {}).then(() => { bannerState = 'none'; go(); });
 }
+/* ---------- Google AdSense banner: the browser version only (ADS_CONFIG.adsense). The app never loads it ----------
+ * Off until both the client and the display ad unit (bannerSlot) are set. Fixed size (320x50, or 728x90 on wide
+ * screens) so its space is known before the ad arrives. AdSense does not allow hiding ads, so when the banner is not
+ * wanted (play starts, menus) the ad is removed from the page, and a new one is requested on the next title / result. */
+const AS = Object.assign({ client: '', bannerSlot: '' }, C.adsense);
+const adsenseOn = !native && !mockMode && !!(AS.client && AS.bannerSlot);
+let asLoaded = false, asBox = null;
+const asSize = () => innerWidth >= 768 ? [728, 90] : [320, 50];
+function loadAdSense() {
+  if (asLoaded) return; asLoaded = true;
+  const s = document.createElement('script'); s.async = true; s.crossOrigin = 'anonymous';
+  s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + encodeURIComponent(AS.client);
+  document.head.appendChild(s);
+}
+function showWebBanner(anchor) {
+  const [w, h] = asSize(), top = Math.round(anchor.getBoundingClientRect().top + GAP) + 'px';
+  spaceFn(h + GAP * 2);
+  if (asBox && asBox.offsetWidth === w) { asBox.style.top = top; return; }
+  hideWebBanner(); loadAdSense();
+  asBox = document.createElement('div'); asBox.className = 'ad-web-banner';
+  Object.assign(asBox.style, { top, width: w + 'px', height: h + 'px' });
+  const ins = document.createElement('ins'); ins.className = 'adsbygoogle';
+  Object.assign(ins.style, { display: 'inline-block', width: w + 'px', height: h + 'px' });
+  ins.dataset.adClient = AS.client; ins.dataset.adSlot = AS.bannerSlot;
+  if (/^(localhost|127\.)/.test(location.hostname)) ins.dataset.adtest = 'on';   // local testing: test ads, no earnings
+  asBox.appendChild(ins); document.body.appendChild(asBox);
+  try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
+}
+function hideWebBanner() { if (asBox) { asBox.remove(); asBox = null; } }
+
 function showBanner(anchor) {
   bannerWanted = true;
+  if (adsenseOn) { if (anchor) showWebBanner(anchor); return; }
   if (!admob || !ids().banner || !anchor) return;
   reserve();
   const offset = bannerOffsetOf(anchor);
@@ -134,7 +166,7 @@ function showBanner(anchor) {
   } else if (!(bannerState === 'shown' && offset === bannerOffset)) placeBanner(offset);
 }
 function hideBanner() {
-  bannerWanted = false; spaceFn(0);
+  bannerWanted = false; spaceFn(0); hideWebBanner();
   if (admob && bannerState === 'shown') { bannerState = 'hidden'; admob.hideBanner().catch(() => {}); }
 }
 
@@ -207,6 +239,7 @@ async function init() {
   if (started) return started;
   started = (async () => {
     preloadHouse();
+    if (adsenseOn) loadAdSense();   // browser version: AdSense (its consent message for the EEA comes with this script)
     const plugin = native ? cap.Plugins && cap.Plugins.AdMob : mockMode ? createMock() : null;
     if (!plugin) return;   // web: house ad only
     // the banner's space is reserved now, while the app's logo screen still covers the title card, so the card never
@@ -254,6 +287,7 @@ css.textContent = `
 .ad-house-close:active{transform:none;background:rgba(255,255,255,.12)}
 .ad-house-link{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 12px 16px}
 .ad-house-link img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;border-radius:8px}
+.ad-web-banner{position:fixed;left:50%;transform:translateX(-50%);z-index:900;line-height:0}
 .ad-mock-banner{position:fixed;left:50%;transform:translateX(-50%);z-index:900;display:grid;place-items:center;
   background:repeating-linear-gradient(45deg,#e8e8e8 0 10px,#d8d8d8 10px 20px);border:1px solid #999;color:#444;font:700 12px sans-serif}
 .ad-mock-reward{position:fixed;inset:0;z-index:1000;background:#222;color:#fff;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;font:700 16px sans-serif}
