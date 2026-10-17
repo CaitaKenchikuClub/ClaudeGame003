@@ -36,8 +36,6 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- vibration when a life is lost (the Haptics plugin) -->
-    <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- ImageSharePlugin: find the apps that can receive the result image, to give them read permission -->
     <queries>
