@@ -209,7 +209,12 @@ async function init() {
     preloadHouse();
     const plugin = native ? cap.Plugins && cap.Plugins.AdMob : mockMode ? createMock() : null;
     if (!plugin) return;   // web: house ad only
+    // the banner's space is reserved now, while the app's logo screen still covers the title card, so the card never
+    // moves once it can be seen; it is freed again if AdMob turns out to be unavailable (offline, no consent)
+    reserve();
+    const free = () => { if (!admob) spaceFn(0); };
     testMode = await isTestBuild();
+    if (!ids().banner) free();
     if (!(ids().banner || ids().rewarded)) return;   // no ad unit IDs configured: house ad only
     try {
       // UMP consent first; the Mobile Ads SDK is started only when ads may be requested.
@@ -219,9 +224,9 @@ async function init() {
       let info = await plugin.requestConsentInfo(debugEEA ? { debugGeography: 1, testDeviceIdentifiers: C.consentDebug.testDeviceHashedIds || [] } : {});
       if (info.status === 'REQUIRED' && info.isConsentFormAvailable) info = await plugin.showConsentForm();
       privacyReq = info.privacyOptionsRequirementStatus === 'REQUIRED';
-      if (info.canRequestAds === false) return;
+      if (info.canRequestAds === false) return free();
       await plugin.initialize({ initializeForTesting: testMode });
-    } catch (e) { return; }   // consent / SDK unavailable: no AdMob, house ad only
+    } catch (e) { return free(); }   // consent / SDK unavailable: no AdMob, house ad only
     admob = plugin;
     on(EV.bannerSize, s => { bannerH = (s && s.height) || 0; if (bannerH) { lastH = bannerH; try { localStorage.setItem(H_KEY, String(bannerH)); } catch (e) {} } if (bannerH && bannerWanted && bannerState !== 'hidden') spaceFn(bannerH + GAP * 2); });
     on(EV.bannerFail, () => { bannerState = 'none'; });   // keeps the reserved space (no jump); it is freed when the screen changes

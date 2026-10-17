@@ -325,6 +325,11 @@ async function openApp({ debug = true, buildInfo = true, prod = true, force = fa
     const Plugins = { AdMob };
     if (o.buildInfo) Plugins.BuildInfo = { get: async () => ({ debug: o.debug }) };
     window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins };
+    // the title card's top, every frame from when the logo screen starts to fade out (from then on the card can be seen)
+    window.__tops = [];
+    const f = () => { const c = document.querySelector('#overlay .card'), i = document.getElementById('intro');
+      if (c && i && (i.hidden || i.classList.contains('out'))) window.__tops.push(Math.round(c.getBoundingClientRect().top)); requestAnimationFrame(f); };
+    requestAnimationFrame(f);
   }, { debug, buildInfo, canRequestAds });
   await ctx.route('**/ads-config.js', async route => {
     let body = await (await route.fetch()).text();
@@ -338,10 +343,11 @@ async function openApp({ debug = true, buildInfo = true, prod = true, force = fa
   const page = await ctx.newPage(), errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto(BASE + 'index.html', { waitUntil: 'load' }); await page.waitForTimeout(4000);   // logo screen, then the title banner
-  const calls = await page.evaluate(() => window.__calls);
+  const calls = await page.evaluate(() => window.__calls), tops = await page.evaluate(() => window.__tops);
+  const space = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--ad-space').trim() || '0px');
   const first = n => (calls.find(c => c[0] === n) || [])[1];
   await ctx.close();
-  return { calls, first, names: calls.map(c => c[0]), errors };
+  return { calls, first, names: calls.map(c => c[0]), errors, tops, space };
 }
 {
   const r = await openApp({ debug: true });
@@ -349,6 +355,8 @@ async function openApp({ debug = true, buildInfo = true, prod = true, force = fa
   check('app debug build: test mode on (isTesting, initializeForTesting)', r.first('showBanner')?.isTesting === true && r.first('prepareRewardVideoAd')?.isTesting === true && r.first('initialize')?.initializeForTesting === true);
   check('UMP: consent info is requested before the Mobile Ads SDK starts and before any ad request', r.names.indexOf('requestConsentInfo') === 0 && r.names.indexOf('initialize') === 1 && r.names.length > 2, r.names.join(','));
   check('app: no page errors', r.errors.length === 0, r.errors.join(' | '));
+  const set = [...new Set(r.tops)];
+  check('app: the title card does not move from the end of the logo screen until the banner is up', r.tops.length > 10 && set.length === 1 && r.space !== '0px', `${set.join(',')} (space ${r.space})`);
 }
 {
   const r = await openApp({ debug: false });
@@ -364,6 +372,7 @@ async function openApp({ debug = true, buildInfo = true, prod = true, force = fa
 {
   const r = await openApp({ debug: true, canRequestAds: false });
   check('UMP: ads may not be requested → SDK not started, no banner / rewarded request', JSON.stringify(r.names) === '["requestConsentInfo"]', r.names.join(','));
+  check('UMP: ads may not be requested → the reserved banner space is freed while the logo is still shown (card does not move)', r.space === '0px' && new Set(r.tops).size === 1, `${[...new Set(r.tops)].join(',')} (space ${r.space})`);
 }
 {
   const d = await openApp({ debug: true, eea: true }), rel = await openApp({ debug: false, eea: true });
