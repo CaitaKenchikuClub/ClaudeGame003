@@ -42,7 +42,7 @@ archive/original-artifact.html  移行前の元ファイル（参照専用・編
 tests/smoke-test.mjs      ブラウザでの自動動作確認（Playwright）
 docs/                     移行メモ・GitHub Pages の公開手順
 .nojekyll                 GitHub Pages の Jekyll 処理を止めるための空ファイル
-package.json              Capacitor（8.5.3）とプラグイン（App・Toast・Haptics・Share・Filesystem・AdMob 8.2.1）の版を固定。npm スクリプト（build／sync／open／icons）
+package.json              Capacitor（8.5.3）とプラグイン（App・Toast・Share・Filesystem・AdMob 8.2.1）の版を固定。npm スクリプト（build／sync／open／icons）
 capacitor.config.json     アプリ名・Application ID（com.caitakenchikuclub.burokocho）・webDir（www）・SystemBars
 scripts/build-web.mjs     アプリに入れるファイルだけを www/ に集める（www/ は git の管理対象外）。ゲームのファイルを足したら WEB_FILES にも足す
 scripts/make-app-icons.mjs アプリのアイコン・スプラッシュを作る（npm run icons）
@@ -112,7 +112,7 @@ node tests/android-test.mjs
 - `index.html` を直接ダブルクリックで開いても動くが、確認はローカルサーバーで行う（GitHub Pages と同じ条件にするため）。
 - 自動テストは `/ClaudeGame003/` というサブパスで配信し、GitHub Pages と同じ条件にしている。
 - 見た目に関わる変更をしたら、テスト後の画面 `tests/last-run.png`（git の管理対象外）や、スクリーンショットで比べる。
-- **実機（iPhone / Android）での確認はオーナーにお願いする**。音・振動・セーフエリアは、ヘッドレスブラウザでは正しく確認できない。
+- **実機（iPhone / Android）での確認はオーナーにお願いする**。音・セーフエリアは、ヘッドレスブラウザでは正しく確認できない。
 
 ## 公開（デプロイ）
 - GitHub Pages：`main` ブランチの**ルート（/）**から公開する設定。`main` にマージすると1〜2分で反映される。

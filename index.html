@@ -692,10 +692,7 @@ function drawBg(){
 }
 function hud(){$score.textContent=score;$lives.textContent='💚'.repeat(lives)+'🤍'.repeat(Math.max(0,3-lives));}
 function pop(x,y,text,color){pops.push({x,y,text,color,a:1});}
-// vibrate: the Android WebView ignores navigator.vibrate, so the app uses the native Haptics plugin
-const buzz=ms=>{const C=window.Capacitor,H=C&&C.isNativePlatform&&C.isNativePlatform()&&C.Plugins&&C.Plugins.Haptics;
-  if(H){H.vibrate({duration:ms}).catch(()=>{});return;}try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
-function hurt(kind){if(inv>0)return;lives--;hud();P.mood='sad';P.moodT=SAD_T;SND.fx(kind);buzz(60);if(lives<=0)gameOver();}
+function hurt(kind){if(inv>0)return;lives--;hud();P.mood='sad';P.moodT=SAD_T;SND.fx(kind);if(lives<=0)gameOver();}   // no vibration (spec, 2026-10-17)
 function gameOver(){   // lives hit 0: freeze everything, keep the best score safe, then offer a continue (once per play) or finish
   running=false;paused=true;P.target=null;keys={};
   if(score>best){best=score;$best.textContent=best;try{localStorage.setItem('broc-best',best)}catch(e){}}

@@ -26,7 +26,7 @@ const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'capacitor.config.json'),
 check('capacitor.config.json: app id / name / webDir', cfg.appId === 'com.caitakenchikuclub.burokocho' && cfg.appName === 'ブロッ校長！' && cfg.webDir === 'www');
 const manifest = fs.readFileSync(path.join(ROOT, 'android/app/src/main/AndroidManifest.xml'), 'utf8');
 check('AndroidManifest: portrait only', /android:screenOrientation="portrait"/.test(manifest));
-check('AndroidManifest: VIBRATE permission (navigator.vibrate does nothing without it)', /<uses-permission android:name="android\.permission\.VIBRATE" \/>/.test(manifest));
+check('AndroidManifest: no VIBRATE permission (the game does not vibrate)', !/android\.permission\.VIBRATE/.test(manifest));
 check('AndroidManifest: AdMob app id comes from the build type', /android:name="com\.google\.android\.gms\.ads\.APPLICATION_ID" android:value="\$\{admobAppId\}"/.test(manifest));
 const gradle = fs.readFileSync(path.join(ROOT, 'android/app/build.gradle'), 'utf8');
 check('build.gradle: debug builds use Google\'s sample AdMob app id', /ADMOB_APP_ID_TEST = 'ca-app-pub-3940256099942544~3347511713'/.test(gradle) && /defaultConfig \{[\s\S]*manifestPlaceholders = \[admobAppId: ADMOB_APP_ID_TEST\]/.test(gradle));
@@ -63,7 +63,6 @@ const NATIVE = () => {
   window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: {
     App: { addListener(ev, fn) { if (ev === 'backButton') window.__back = fn; return Promise.resolve({ remove() {} }); }, exitApp() { window.__exits++; return Promise.resolve(); } },
     Toast: { show(o) { window.__toasts.push(o.text); return Promise.resolve(); } },
-    Haptics: { vibrate(o) { (window.__buzz = window.__buzz || []).push(o.duration); return Promise.resolve(); } },
     // the phone's media volume (MediaVolumePlugin.java); window.__setVol(n) is the player pressing the volume buttons
     MediaVolume: { get() { return Promise.resolve({ level: window.__vol, max: 15 }); }, addListener(ev, fn) { if (ev === 'change') window.__volFn = fn; return Promise.resolve({ remove() {} }); } },
   } };
@@ -184,7 +183,6 @@ const audio = p => p.evaluate(() => window.__audio);
 
   await page.evaluate(() => window.__die()); await page.waitForTimeout(400);
   await back(page); await page.waitForTimeout(100);
-  check('losing a life vibrates through the native Haptics plugin (60 ms)', JSON.stringify(await page.evaluate(() => window.__buzz)) === '[60]');
   check('continue card: back is ignored', (await visible(page, '#cont')) && !(await visible(page, '#menu')) && (await exits(page)) === 0 && (await toasts(page)) === 2);
   await page.tap('#contAd'); await page.waitForTimeout(300);
   await back(page); await page.waitForTimeout(100);
