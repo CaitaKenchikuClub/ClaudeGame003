@@ -121,5 +121,6 @@
 - プライバシーポリシー：リポジトリ PrivacyPolicy の `burokocho/index.html`（公開 URL https://caitakenchikuclub.github.io/PrivacyPolicy/burokocho/ 。PrivacyPolicy の main にマージすると公開される）。設定メニューの「プライバシーポリシー」からも開ける。
 - AdMob の「プライバシーとメッセージ」で、欧州規則（GDPR）のメッセージを作成・公開する（プライバシーポリシーの URL は上のもの）。
 - AdMob の「ブロックの管理」で、広告コンテンツの評価の上限を G か PG にする（おすすめ）。
-- Google Play 登録後：AdMob のアプリをストアの掲載情報とリンクする、`app-ads.txt` を開発者のウェブサイトのトップに置く、Play Console で「広告を含む」と「データ セーフティ」（AdMob が集める情報）を申告する（プライバシーポリシーの URL は上のもの）。
+- `app-ads.txt`（2026-10-17 設置済み）：https://caitakenchikuclub.github.io/app-ads.txt 。中身は `google.com, pub-9985841758256257, DIRECT, f08c47fec0942fa0`。リポジトリ **CaitaKenchikuClub.github.io**（GitHub Pages のユーザーサイト。トップは けんちくぶ！の紹介ページ）に置いている。Play Console の「ウェブサイト」欄には https://caitakenchikuclub.github.io/ を登録する（AdMob はこのサイトの一番上の app-ads.txt を読みに行く）。
+- Google Play 登録後：AdMob のアプリをストアの掲載情報とリンクする（リンク後、AdMob の「app-ads.txt」の画面で確認される。反映まで最大24時間ほど）、Play Console で「広告を含む」と「データ セーフティ」（AdMob が集める情報）を申告する（プライバシーポリシーの URL は上のもの）。
 - 本番版の署名（アップロード鍵）を作る。

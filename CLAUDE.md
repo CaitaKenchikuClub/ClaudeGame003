@@ -129,4 +129,5 @@ node tests/android-test.mjs
 
 ## 今後の予定（優先順の目安）
 1. 本番版（release）の署名とビルド、Google Play への登録
-2. ストア公開の準備（プライバシーポリシー、app-ads.txt、データセーフティ、AdMob の GDPR メッセージ。`docs/ADS.md` の 6-4）
+2. ストア公開の準備（データセーフティ、AdMob とストアのリンク。`docs/ADS.md` の 6-4。プライバシーポリシー・app-ads.txt・AdMob の GDPR メッセージ・ストア用画像は用意済み）
+- app-ads.txt は別リポジトリ **CaitaKenchikuClub.github.io** の一番上にある（https://caitakenchikuclub.github.io/app-ads.txt ）。場所と中身を変えない。
